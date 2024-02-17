@@ -1,4 +1,5 @@
 # VikingOS
+![_e6a334b7-19c0-4140-8dc3-e47f140ba2c8](https://github.com/v1k1ngspl01ts/VikingOS/assets/160347797/f1ecd534-b998-4f8e-9b2c-f09da8f0ca96)
 
 The VikingOS shell script takes a Debian or Ubuntu os and turns it into a penetration testing distro. It has currently been tested on Debian 12 and Ubuntu 22.04. It currently installs the following tools:
 
