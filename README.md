@@ -4,172 +4,173 @@
 The VikingOS shell script takes a Debian or Ubuntu os and turns it into a penetration testing distro. It has currently been tested on Debian 12 and Ubuntu 22.04. It currently installs the following tools:
 
 Scanning:
-    nmap
-    masscan
-    nbtscan
+   - nmap
+   - masscan
+   - nbtscan
     
 Bruteforce:
-    crackmapexec
-    medusa
-    hydra
-    ncrack
+   - crackmapexec
+   - medusa
+   - hydra
+   - ncrack
 
 Exploit:
-    metasploit
-    responder
-    flamingo
+   - metasploit
+   - responder
+   - flamingo
 
 SQL:
-    sqlmap
+   - sqlmap
 
 Relay:
-    mitm6
+   - mitm6
     
 Web:
-    burpsuite
-    zap
-    nikto
-    wpscan
-    feroxbuster
-    gobuster
-    cewl
-    cadaver
+   - burpsuite
+   - zap
+   - nikto
+   - wpscan
+   - feroxbuster
+   - gobuster
+   - cewl
+   - cadaver
 
 SNMP:
-    onesixtyone
-    snmp* (snmpwalk, ect *)
+   - onesixtyone
+   - snmp(snmpwalk, ect)
 
 DNS:
-    dnsrecon
-    dnsenum
+   - dnsrecon
+   - dnsenum
 
 Forensics:
-    sleuthkit
-    volatility
-    binwalk
-    ghidra
-    radare2
-    gdbpeda
+   - sleuthkit
+   - volatility
+   - binwalk
+   - ghidra
+   - radare2
+   - gdbpeda
 
 Resources:
-    seclists
-    payloadallthethings
-    rockyou
-    crackstation-wordlists
-    cyberchef
+   - seclists
+   - payloadallthethings
+   - rockyou
+   - crackstation-wordlists
+   - cyberchef
     
 Password cracking:
-    crunch
-    johntheripper
-    hashcat
-    hashcatrules
+   - crunch
+   - johntheripper
+   - hashcat
+   - hashcatrules
 
 Windows:
-    impacket
-    bloodhound/sharphound
-    openldap
-    mimikatz
-    kekeo
-    lazagne
-    sharpcollection
-    powersploit
-    evil-winrm
-    enum4linux
-    pingcastle
-    nanodump
-    kerbrute
-    krbrelayx
-    certipy
+   - impacket
+   - bloodhound/sharphound
+   - openldap
+   - mimikatz
+   - kekeo
+   - lazagne
+   - sharpcollection
+   - powersploit
+   - evil-winrm
+   - enum4linux
+   - pingcastle
+   - nanodump
+   - kerbrute
+   - krbrelayx
+   - certipy
     
 Linux:
-    pspy
+   - pspy
 
 Cloud:
-    awsbucketdump
-    azurehound
-    awscli
-    googlecli
-    azurecli
+   - awsbucketdump
+   - azurehound
+   - awscli
+   - googlecli
+   - azurecli
 
 Github:
-    trufflehog
+   - trufflehog
 
 Phising:
-    social-engineer-toolkit
+   - social-engineer-toolkit
 
 Evasion:
-    donut
-    scarecrow
+   - donut
+   - scarecrow
 
 C2:
-    sliver
-    mythic
-    merlin
-    villian
-    havoc
-    poshc2
+   - sliver
+   - mythic
+   - merlin
+   - villian
+   - havoc
+   - poshc2
 
 Privesc:
-    peass-ng
+   - peass-ng
     
 Hex Editor:
-    okteta
-    bless
+   - okteta
+   - bless
 
 Browsers:
-    brave
-    chromium
+   - brave
+   - chromium
 
 Virtualization:
-    incus
-    qemu
-    libvirt
+   - incus
+   - qemu
+   - libvirt
 
 Coding:
-    vscode
-    nasm
-    musl
-    perl
-    ruby
-    python3
-    rust
-    clang
-    mingw
-    nim
-    go
-    jd-gui
+   - vscode
+   - nasm
+   - musl
+   - perl
+   - ruby
+   - python3
+   - rust
+   - clang
+   - mingw
+   - nim
+   - go
+   - jd-gui
 
 Notes:
-    ghostwriter
-    cherrytree
-    drawio
+   - ghostwriter
+   - cherrytree
+   - drawio
     
 Server:
-    nfsserver
+   - nfsserver
 
 Opensource Research:
-    theharvester
+   - theharvester
 
 From apt repos:
-    smbclient
-    recordmydesktop
-    screengrab
-    shutter
-    postgresql-client
-    sqlite3
-    wireshark
-    tor
-    vim
-    sshuttle gdb
-    7zip
+   - smbclient
+   - recordmydesktop
+   - screengrab
+   - shutter
+   - postgresql-client
+   - sqlite3
+   - wireshark
+   - tor
+   - vim
+   - sshuttle
+   - gdb
+   - 7zip
 
 Docker:
-    docker
+   - docker
 
 
 Docker, ruby, go and all the tools from the apt repos are automatically installed. The rest of the tools can be either select or not select for install when the script is run. 
 
 # Requirements
-Debian 12 (or newer) 
-Ubuntu 22.04 (or newer)
+Debian 12 (or newer)\ 
+Ubuntu 22.04 (or newer)\
 ~55 GB of free space on drive after OS install
