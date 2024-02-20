@@ -5,19 +5,19 @@ if [ "$EUID" -ne 0 ]
   exit
 fi
 
-OS=NULL
+OS=`cat /etc/*release | grep "^ID="`
 
-if [[ `grep -i name /etc/*lease* | grep -i debian` ]]
-	then OS='debian'
-elif [[ `grep -i name /etc/*lease* | grep -i ubuntu` ]]
-	then OS='ubuntu'
+if [[ $OS == *"debian"* ]]; then
+	echo "Debian"
+elif [[ $OS == *"ubuntu"* ]]; then
+	echo "Ubuntu"
 else
 	echo "OS is not Debian or Ubuntu! Exiting!"
 	exit
 fi
 
 if [[ -z "$VIKINGOS_LOG" ]]; then
-	if [[ "$OS" == "ubuntu" ]]; then
+	if [[ $OS == *"ubuntu"* ]]; then
 		script vikingos.log /bin/bash -c "VIKINGOS_LOG=1 $0 $*"
 	else
 		script vikingos.log -c "VIKINGOS_LOG=1 $0 $*"
@@ -333,6 +333,13 @@ install_crackstationwordlists() {
 	gunzip crackstation-human-only.txt.gz
 }
 
+install_cyberchef() {
+	cd /opt/vikingos/resources
+	curl -s https://api.github.com/repos/gchq/CyberChef/releases/latest | grep browser_download_url | grep "CyberChef" | cut -f 4 -d '"' | xargs -L1 curl -L -O -J
+	unzip -d cyberchef CyberChef*.zip
+	rm -f CyberChef*.zip
+}
+
 #crunch
 install_crunch() {
 	apt-get install -y crunch
@@ -615,7 +622,7 @@ install_merlin() {
 	mkdir merlin
 	cd merlin
 	wget https://github.com/Ne0nd0g/merlin/releases/latest/download/merlinServer-Linux-x64.7z
-	if [[ "$OS" == "ubuntu" ]]; then
+	if [[ $OS == *"ubuntu"* ]]; then
 		7zz x -p"merlin" merlinServer-Linux-x64.7z
 	else
 		7z x -p"merlin" merlinServer-Linux-x64.7z
@@ -699,7 +706,7 @@ install_brave() {
 }
 
 install_chromium() {
-	if [[ "$OS" == "ubuntu" ]]; then
+	if [[ $OS == *"ubuntu"* ]]; then
 		apt-get install -y chromium-browser
 	else
 		apt-get install -y chromium
@@ -819,10 +826,18 @@ install_cherrytree() {
 	cd cherrytree
 	curl -s https://api.github.com/repos/giuspen/cherrytree/releases/latest | grep browser_download_url | grep "AppImage" | cut -d '"' -f 4 | xargs -L1 curl -L -O -J
 	chmod +x Cherry*
-	if [[ "$OS" == "ubuntu" ]]; then
+	if [[ $OS == *"ubuntu"* ]]; then
 		apt-get install -y libfuse2
 	fi
 	ls | xargs -I {} ln -s /opt/vikingos/notes/cherrytree/{} /usr/local/bin/cherrytree
+}
+
+install_drawio() {
+	cd /opt/vikingos/notes
+	mkdir drawio
+	cd drawio
+	curl -s https://api.github.com/repos/jgraph/drawio-desktop/releases/latest | grep browser_download_url | grep "amd64" | grep "deb" | cut -f 4 -d '"' | xargs -L1 curl -L -O -J
+	dpkg -i drawio*
 }
 
 #net
@@ -845,7 +860,7 @@ install_jdgui() {
 }
 
 install_nfsserver() {
-	if [[ "$OS" == "ubuntu" ]]; then
+	if [[ $OS == *"ubuntu"* ]]; then
 		apt-get install -y nfs-kernel-server
 	else
 		apt-get install -y nfs-server
@@ -899,6 +914,7 @@ options=(nmap "" on
 	payloadallthethings "" on
 	rockyou "" on
 	crackstation-wordlists "" on
+	cyberchef "" on
 	crunch "" on
 	john-the-ripper "" on
 	hashcat "" on
@@ -953,6 +969,7 @@ options=(nmap "" on
 	nim "" on
 	ghostwriter "" on
 	cherrytree "" on
+	drawio "" on
 	maccahnger "" on
 	jd-gui "" on
 	theHarvester "" on
@@ -989,11 +1006,11 @@ apt-get install -y gdb
 apt-get install -y nfs-common
 
 
-if [[ "$OS" == "ubuntu" ]]; then
+if [[ $OS == *"ubuntu"* ]]; then
 	apt-get install -y 7zip
 fi
 
-if [[ "$OS" == "ubuntu" ]]; then
+if [[ $OS == *"ubuntu"* ]]; then
 	apt-get install -y ca-certificates curl
 	install -m 0755 -d /etc/apt/keyrings
 	curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
@@ -1158,6 +1175,9 @@ do
 		crackstation-wordlists)
 			install_crackstationwordlists
 			;;
+		cyberchef)
+			install_cyberchef
+			;;
 		crunch)
 			install_crunch
 			;;
@@ -1320,6 +1340,9 @@ do
 		cherrytree)
 			install_cherrytree
 			;;
+		drawio)
+			install_drawio
+			;;
 		macchanger)
 			install_macchanger
 			;;
@@ -1335,7 +1358,7 @@ do
 	esac
 done
 
-echo -ne "Thank you for using vikingos! Some tips:\n\n\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n\tResources for the os are located at /usr/share/vikingos-resources\n\n"
+echo -ne "Thank you for using vikingos! Some tips:\n\n\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n\tResources for the os are located at /usr/share/vikingos-resources\n\n\t For cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this, they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
 
 exit
 
