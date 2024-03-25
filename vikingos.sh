@@ -6,6 +6,7 @@ if [ "$EUID" -ne 0 ]
 fi
 
 OS=`cat /etc/*release | grep "^ID="`
+VERSION_ID=`cat /etc/*release | grep "^VERSION_ID="`
 
 if [[ $OS == *"debian"* ]]; then
 	echo "Debian"
@@ -17,10 +18,10 @@ else
 fi
 
 if [[ -z "$VIKINGOS_LOG" ]]; then
-	if [[ $OS == *"ubuntu"* ]]; then
+	if [ $OS == *"ubuntu"* ] && [ $VERSION_ID=*"22.04"* ]; then
 		script vikingos.log /bin/bash -c "VIKINGOS_LOG=1 $0 $*"
 	else
-		script vikingos.log -c "VIKINGOS_LOG=1 $0 $*"
+		script -c "VIKINGOS_LOG=1 $0 $*" vikingos.log 
 	fi
 	echo "Logfile: vikingos.log"
 	exit
@@ -76,6 +77,15 @@ install_crackmapexec() {
 	PIPX_BIN_PATH=/usr/local/bin PIPX_HOME=/usr/local/bin pipx install .
 	ln -s /usr/local/bin/venvs/crackmapexec/bin/cme /usr/local/bin/cme
 	ln -s /usr/local/bin/venvs/crackmapexec/bin/crackmapexec /usr/local/bin/crackmapexec
+}
+
+install_netexec() {
+	cd /opt/vikingos/bruteforce
+	git clone https://github.com/Pennyw0rth/NetExec
+	cd NetExec
+	python3 -m venv /usr/share/.netexec
+	/usr/share/.netexec/bin/pip3 install .
+	echo '/usr/share/.netexec/bin/python3 /opt/vikingos/bruteforce/NetExec/nxc/netexec.py "$@"' > /usr/local/bin/netexec && chmod 555 /usr/local/bin/netexec
 }
 
 install_medusa() {
@@ -222,6 +232,20 @@ install_cadaver() {
 	make && make install
 }
 
+install_webcheck() {
+	curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+	export NVM_DIR="$HOME/.nvm"
+	[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm,sh" 
+	nvm install node
+	npm install --global yarn
+	cd /opt/vikingos/web
+	git clone https://github.com/Lissy93/web-check.git
+	cd web-check
+	yarn install  
+	yarn build
+	echo 'if [ "$EUID" -ne 0 ]; then echo "Please run as root by either using sudo su or su root" && exit; fi; cd /opt/vikingos/web/web-check && yarn serve' > /usr/local/bin/web-check && chmod 555 /usr/local/bin/web-check
+}
+
 #snmp
 
 install_onesixtyone() {
@@ -311,6 +335,7 @@ install_gdbpeda() {
 install_seclists() {
 	cd /opt/vikingos/resources
 	git clone https://github.com/danielmiessler/SecLists
+	ln -s /opt/vikingos/resources/SecLists/Web-Shells /usr/share/vikingos-resources/webshells
 }
 
 install_payloadallthethings() {
@@ -400,6 +425,10 @@ install_bloodhound_sharphound() {
 	unzip SharpHound* -d sharphound
 }
 
+install_nidhogg() {
+	cd /opt/vikingos/windows-uploads
+	git clone https://github.com/Idov31/Nidhogg
+}
 
 install_openldap() {
 	cd /opt/vikingos/windows
@@ -495,6 +524,20 @@ install_certipy() {
 	echo '/usr/share/.pvenv/bin/python3 /usr/share/.pvenv/bin/certipy "$@"'> /usr/local/bin/certipy && chmod 555 /usr/local/bin/certipy
 }
 
+install_incognito() {
+	cd /opt/vikingos/windows-uploads
+	git clone https://github.com/FSecureLABS/incognito
+	cd incognito
+	git checkout -b test-branch 394545ffb844afcc18e798737cbd070ff3a4eb29
+	ls | egrep -v "\.exe" | xargs rm 
+}
+
+install_sysinternals() {
+	cd /opt/vikinos/windows-uploads
+	curl -L -O -J https://download.sysinternals.com/files/SysinternalsSuite.zip
+	unzip -d sysinternals SysinternalsSuite.zip 
+}
+
 #linux
 
 install_pspy() {
@@ -502,6 +545,29 @@ install_pspy() {
 	mkdir pspy
 	cd pspy
 	curl -s https://api.github.com/repos/DominicBreuker/pspy/releases/latest | grep browser_download_url | cut -d '"' -f 4 | xargs -L1 curl -L -O -J
+}
+
+install_sshsnake() {
+	cd /opt/vikingos/linux-uploads
+	git clone https://github.com/MegaManSec/SSH-Snake
+}
+
+install_reptile() {
+	cd /opt/vikingos/linux-uploads
+	git clone https://github.com/f0rb1dd3n/Reptile
+}
+
+install_busybox() {
+	cd /opt/vikingos/linux-uploads
+	mkdir busybox
+	cd busybox
+	curl -L -O -J https://www.busybox.net/downloads/binaries/1.21.1/busybox-binaries.tar.bz2
+	tar xjvf busybox-binaries.tar.bz2
+	rm busybox-binaries.tar.bz2
+	cd ..
+	mkdir busybox-musl-x64
+	cd busybox-musl-x64
+	curl -L -O -J https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox
 }
 
 #cloud
@@ -513,6 +579,16 @@ install_awsbucketdump() {
 	python3 -m venv /usr/share/.awsbucketdump
 	/usr/share/.awsbucketdump/bin/pip3 install -r requirements.txt
 	echo '/usr/share/.awsbucketdump/bin/python3 /opt/vikingos/cloud/AWSBucketDump/AWSBucketDump.py "$@"' > /usr/local/bin/awsbucketdump && chmod 555 /usr/local/bin/awsbucketdump
+}
+
+install_awsconsoler() {
+	cd /opt/vikingos/cloud
+	git clone https://github.com/NetSPI/aws_consoler
+	cd aws_consoler
+	python3 -m venv /usr/share/.aws_consoler
+	/usr/share/.aws_consoler/bin/pip3 install -r requirements.txt
+	/usr/share/.aws_consoler/bin/python3 setup.py install
+	echo '/usr/share/.aws_consoler/bin/python3 /opt/vikingos/cloud/aws_consoler/aws_consoler/cli.py "$@"' > /usr/local/bin/aws-consoler && chmod 555 /usr/local/bin/aws-consoler
 }
 
 install_azurehound() {
@@ -602,6 +678,113 @@ install_scarecrow() {
 	ln -s /opt/vikingos/evasion/ScareCrow/ScareCrow /usr/local/bin/ScareCrow
 }
 
+#pivoting
+install_chisel() {
+	cd /opt/vikingos/pivoting
+	mkdir chisel
+	cd chisel
+	curl -s https://api.github.com/repos/jpillora/chisel/releases/latest | grep browser_download_url | grep "linux_amd64" | cut -d '"' -f 4 | xargs -L1 curl -L -o chisel.gz
+	gunzip chisel.gz
+	chmod 755 chisel
+	ln -s /opt/vikingos/pivoting/chisel/chisel /usr/local/bin/chisel
+	cd /opt/vikingos/linux-uploads
+	mkdir chisel
+	cd chisel
+	curl -s https://api.github.com/repos/jpillora/chisel/releases/latest | grep browser_download_url | grep "linux" | cut -d '"' -f 4 | xargs -L1 curl -L -o chisel.gz
+	gunzip *.gz
+	cd /opt/vikingos/windows-uploads
+	mkdir chisel
+	cd chisel
+	curl -s https://api.github.com/repos/jpillora/chisel/releases/latest | grep browser_download_url | grep "windows" | cut -d '"' -f 4 | xargs -L1 curl -L -o chisel.gz
+	gunzip *.gz
+}
+
+install_ligolong()
+{
+	cd /opt/vikingos/pivoting
+	mkdir ligolo-ng
+	cd ligolo-ng
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "proxy" | grep "linux_amd64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	chmod +x proxy
+	ln -s /opt/vikingos/pivoting/ligolo-ng/proxy /usr/local/bin/ligolong-proxy 
+	cd /opt/vikingos/linux-uploads
+	mkdir ligolo-ng
+	cd ligolo-ng
+	mkdir linux
+	cd linux
+	mkdir amd64
+	cd amd64
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "linux_amd64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	rm ligolo-ng.tar LICENSE README.md
+	cd ..
+	mkdir arm64
+	cd arm64
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "linux_arm64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	rm ligolo-ng.tar LICENSE README.md
+	cd ..
+	mkdir armv6
+	cd armv6
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "linux_armv6"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	rm ligolo-ng.tar LICENSE README.md
+	cd ..
+	mkdir armv7
+	cd armv7
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "linux_armv7"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	rm ligolo-ng.tar LICENSE README.md
+	cd ..
+	cd ..
+	mkdir darwin
+	cd darwin
+	mkdir arm64
+	cd arm64
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "darwin_arm64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	rm ligolo-ng.tar LICENSE README.md
+	cd ..
+	mkdir amd64
+	cd amd64
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "darwin_amd64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.tar.gz
+	gunzip ligolo-ng.tar.gz
+	tar xf ligolo-ng.tar
+	rm ligolo-ng.tar LICENSE README.md
+	cd /opt/vikingos/windows-uploads
+	mkdir ligolo-ng
+	cd ligolo-ng 
+	mkdir amd64
+	cd amd64
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "windows_amd64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.zip
+	unzip -d . ligolo-ng.zip
+	rm ligolo-ng.zip LICENSE README.md
+	cd ..
+	mkdir arm64
+	cd arm64
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "windows_arm64"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.zip
+	unzip -d . ligolo-ng.zip
+	rm ligolo-ng.zip LICENSE README.md
+	cd ..
+	mkdir armv6
+	cd armv6
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "windows_armv6"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.zip
+	unzip -d . ligolo-ng.zip
+	rm ligolo-ng.zip LICENSE README.md
+	cd ..
+	mkdir armv7
+	cd armv7
+	curl -s https://api.github.com/repos/nicocha30/ligolo-ng/releases/latest | grep browser_download_url | grep "agent" | grep "windows_armv7"  | cut -d '"' -f 4 | xargs -L1 curl -L -o ligolo-ng.zip
+	unzip -d . ligolo-ng.zip
+	rm ligolo-ng.zip LICENSE README.md
+}
 #c2
 
 install_sliver() {
@@ -731,7 +914,18 @@ Signed-By: /etc/apt/keyrings/zabbly.asc
 
 EOF'
 		apt-get update
-		apt-get install -y incus
+		apt-get install -y incus incus-client incus-ui-canonical
+		incus admin init --minimal
+		incus config set core.https_address "localhost:8443"
+		apt install -y debootstrap rsync gpg squashfs-tools git make
+		cd /opt/vikingos/virtualization
+		git clone https://github.com/lxc/distrobuilder
+		cd distrobuilder
+		rm -rf /usr/bin/go
+		ln -s /usr/local/go/bin/go /usr/bin/go
+		make
+		cp /root/go/bin/distrobuilder /usr/local/bin		
+		
 	else
 		read -p "Something is wrong with the gpg key for the zabbly repo. Please check and install manually. Press any key to resume..."
 	fi
@@ -743,6 +937,14 @@ install_qemu() {
 
 install_libvirt() {
 	apt-get install -y libvirt-clients libvirt-daemon-system virtinst
+}
+
+install_kubectl() {
+	cd /opt/vikingos/virtualization
+	mkdir kubectl
+	cd kubectl
+	curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+	install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 }
 
 #coding
@@ -832,12 +1034,21 @@ install_cherrytree() {
 	ls | xargs -I {} ln -s /opt/vikingos/notes/cherrytree/{} /usr/local/bin/cherrytree
 }
 
+install_obsidian() {
+	cd /opt/vikingos/notes
+	mkdir obsidian
+	cd obsidian
+	curl -L https://obsidian.md/download | grep -i "AppImage" | head -1 | cut -f 2 -d '"' | xargs -I {} curl -L -o obsidian {}
+	chmod +x obsidian
+	ln -s /opt/vikingos/notes/obsidian/obsidian /usr/local/bin/obsidian
+}
+
 install_drawio() {
 	cd /opt/vikingos/notes
 	mkdir drawio
 	cd drawio
 	curl -s https://api.github.com/repos/jgraph/drawio-desktop/releases/latest | grep browser_download_url | grep "amd64" | grep "deb" | cut -f 4 -d '"' | xargs -L1 curl -L -O -J
-	dpkg -i drawio*
+	apt -y install ./drawio*
 }
 
 #net
@@ -878,12 +1089,46 @@ install_harvester() {
 	echo '/usr/share/.harvester/bin/python3 /opt/vikingos/opensource-research/theHarvester/theHarvester.py' > /usr/local/bin/harvester && chmod 555 /usr/local/bin/harvester
 }
 
+#encryption/password managers
+
+install_keepassxc() {
+	cd /opt/vikingos/encryption_password_managers
+	mkdir keepassxc
+	cd keepassxc
+	curl -L https://keepassxc.org/download/#linux | grep -i "Download Appimage" | cut -f 2 -d '"' | xargs -I {} curl -L -o keepassxc {}
+	chmod +x keepassxc
+	ln -s /opt/vikingos/encryption_password_managers/keepassxc/keepassxc /usr/local/bin/keepassxc
+}
+
+install_veracrypt() {
+	cd /opt/vikingos/encryption_password_managers
+	mkdir veracrypt
+	cd veracrypt
+	if [[ $OS == *"ubuntu"* ]]; then
+		curl -L https://veracrypt.fr/en/Downloads.html | grep href | grep -i `echo $OS | cut -d '=' -f 2` | grep -i `echo $VERSION_ID | cut -d '"' -f 2 | cut -f 1 -d '.'` | head -n 1 | cut -f 2 -d '"' | sed -e "s/&#43;/+/g" | xargs -I {} curl -L -O -J {}
+	else
+		curl -L https://veracrypt.fr/en/Downloads.html | grep href | grep -i `echo $OS | cut -d '=' -f 2` | grep -i `echo $VERSION_ID | cut -d '"' -f 2` | head -n 1 | cut -f 2 -d '"' | sed -e "s/&#43;/+/g" | xargs -I {} curl -L -O -J {}
+	fi
+	apt -y install ./*.deb
+	rm *.deb
+}
+
+install_bitwarden() {
+	cd /opt/vikingos/encryption_password_managers
+	mkdir bitwarden
+	cd bitwarden
+	curl -L -o bitwarden https://vault.bitwarden.com/download/?app=desktop\&platform=linux
+	chmod +x bitwarden
+	ln -s /opt/vikingos/encryption_password_managers/bitwarden/bitwarden /usr/local/bin/bitwarden
+	
+}
 
 cmd=(dialog --separate-output --checklist "VikingOS\nTake what you need, leave which you don't:" 22 76 16)
 options=(nmap "" on
 	masscan "" on
 	nbtscan "" on
 	crackmapexec "" on
+	netexec "" on
 	medusa "" on
 	hydra "" on
 	ncrack "" on
@@ -900,6 +1145,7 @@ options=(nmap "" on
 	gobuster "" on
 	cewl "" on
 	cadaver "" on
+	web-check "" on
 	onesixtyone "" on
 	snmp "" on
 	dnsrecon "" on
@@ -921,6 +1167,7 @@ options=(nmap "" on
 	hashcat-rules "" on
 	impacket "" on
 	bloodhound-sharphound "" on
+	nidhogg "" on
 	openldap "" on
 	mimikatz "" on
 	kekeo "" on
@@ -934,8 +1181,14 @@ options=(nmap "" on
 	kerbrute "" on
 	krbrelayx "" on
 	certipy "" on
+	incognito "" on
+	sysinternals "" on
 	pspy "" on
+	sshsnake "" on
+	reptile "" on
+	busybox "" on
 	awsbucketdump "" on
+	aws-consoler "" on
 	azurehound "" on
 	awscli "" on
 	azurecli "" on
@@ -944,6 +1197,8 @@ options=(nmap "" on
 	social-engineer-toolkit "" on
 	donut "" on
 	scarecrow "" on
+	chisel "" on
+	ligolo-ng "" on
 	sliver "" on
 	mythic "" on
 	merlin "" on
@@ -958,6 +1213,7 @@ options=(nmap "" on
 	incus "" on
 	qemu "" on
 	libvirt "" on
+	kubectl "" on
 	vscode "" on
 	nasm "" on
 	musl "" on
@@ -969,10 +1225,14 @@ options=(nmap "" on
 	nim "" on
 	ghostwriter "" on
 	cherrytree "" on
+	obsidian "" on
 	drawio "" on
 	maccahnger "" on
 	jd-gui "" on
 	theHarvester "" on
+	keepassxc "" on
+	veracrypt "" on
+	bitwarden "" on
 	nfs-server "" off)
 choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 clear
@@ -992,6 +1252,7 @@ apt-get install -y libssh-dev
 apt-get install -y automake
 apt-get install -y postgresql-client
 apt-get install -y sqlite3 sqlite3-tools
+apt-get install -y sqlitebrowser
 apt-get install -y python3-pip
 apt-get install -y wireshark
 apt-get install -y openjdk-17-jre openjdk-17-jdk
@@ -1000,6 +1261,7 @@ apt-get install -y tor
 apt-get install -y ssh
 apt-get install -y vim
 apt-get install -y texinfo
+apt-get install -y texlive
 apt-get install -y python3-pip python3-venv
 apt-get install -y sshuttle
 apt-get install -y gdb
@@ -1060,6 +1322,8 @@ mkdir /opt/vikingos/notes
 mkdir /opt/vikingos/net
 mkdir /opt/vikingos/virtualization
 mkdir /opt/vikingos/opensource-research
+mkdir /opt/vikingos/pivoting
+mkdir /opt/vikingos/encryption_password_managers
 
 cd /opt/vikingos/coding
 mkdir go
@@ -1069,6 +1333,8 @@ rm -rf /usr/local/go && tar -C /usr/local -xzf go*
 echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/profile
 echo "export PATH=\$PATH:/usr/local/go/bin" >> /etc/bash.bashrc
 source /etc/profile
+rm -rf /usr/bin/go
+ln -s /usr/local/go/bin/go /usr/bin/go
 
 for choice in $choices
 do
@@ -1084,6 +1350,9 @@ do
 			;;
 		crackmapexec)
 			install_crackmapexec
+			;;
+		netexec)
+			install_netexec
 			;;
 		medusa)
 			install_medusa
@@ -1132,6 +1401,9 @@ do
 			;;
 		cadaver)
 			install_cadaver
+			;;
+		web-check)
+			install_webcheck
 			;;
 		onesixtyone)
 			install_onesixtyone
@@ -1196,6 +1468,9 @@ do
 		bloodhound-sharphound)
 			install_bloodhound_sharphound
 			;;
+		nidhogg)
+			install_nidhogg
+			;;
 		openldap)
 			install_openldap
 			;;
@@ -1235,11 +1510,29 @@ do
 		certipy)
 			install_certipy
 			;;
+		incognito)
+			install_incognito
+			;;
+		sysinternals)
+			install_sysinternals
+			;;
 		pspy)
 			install_pspy
 			;;
+		sshsnake)
+			install_sshsnake
+			;;
+		reptile)
+			install_reptile
+			;;
+		busybox)
+			install_busybox
+			;;
 		awsbucketdump)
 			install_awsbucketdump
+			;;
+		aws-consoler)
+			install_awsconsoler
 			;;
 		azurehound)
 			install_azurehound
@@ -1264,6 +1557,12 @@ do
 			;;
 		scarecrow)
 			install_scarecrow
+			;;
+		chisel)
+			install_chisel
+			;;
+		ligolo-ng)
+			install_ligolong
 			;;
 		sliver)
 			install_sliver
@@ -1307,6 +1606,9 @@ do
 		libvirt)
 			install_libvirt
 			;;
+		kubectl)
+			install_kubectl
+			;;
 		vscode)
 			install_vscode
 			;; 
@@ -1340,6 +1642,9 @@ do
 		cherrytree)
 			install_cherrytree
 			;;
+		obsidian)
+			install_obsidian
+			;;
 		drawio)
 			install_drawio
 			;;
@@ -1352,13 +1657,22 @@ do
 		theHarvester)
 			install_harvester
 			;;
+		keepassxc)
+			install_keepassxc
+			;;
+		veracrypt)
+			install_veracrypt
+			;;
+		bitwarden)
+			install_bitwarden
+			;;
 		nfs-server)
 			install_nfsserver
 			;;
 	esac
 done
 
-echo -ne "Thank you for using vikingos! Some tips:\n\n\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n\tResources for the os are located at /usr/share/vikingos-resources\n\n\t For cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this, they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
+echo -ne "Thank you for using vikingos! Some tips:\n\n\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n\tResources for the os are located at /usr/share/vikingos-resources\n\n\t For cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this,  they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
 
 exit
 
