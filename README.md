@@ -10,6 +10,7 @@ Scanning:
     
 Bruteforce:
    - crackmapexec
+   - netexec
    - medusa
    - hydra
    - ncrack
@@ -34,6 +35,7 @@ Web:
    - gobuster
    - cewl
    - cadaver
+   - web-check
 
 SNMP:
    - onesixtyone
@@ -67,6 +69,7 @@ Password cracking:
 Windows:
    - impacket
    - bloodhound/sharphound
+   - nidhogg (need a windows machine with VS to build)
    - openldap
    - mimikatz
    - kekeo
@@ -80,12 +83,18 @@ Windows:
    - kerbrute
    - krbrelayx
    - certipy
+   - incognito
+   - sysinternals
     
 Linux:
    - pspy
+   - sshsnake
+   - reptile
+   - busybox
 
 Cloud:
    - awsbucketdump
+   - aws_consoler
    - azurehound
    - awscli
    - googlecli
@@ -100,7 +109,9 @@ Phising:
 Evasion:
    - donut
    - scarecrow
-
+Pivoting:
+   - chisel
+   - ligolo-ng
 C2:
    - sliver
    - mythic
@@ -124,6 +135,7 @@ Virtualization:
    - incus
    - qemu
    - libvirt
+   - kubectl
 
 Coding:
    - vscode
@@ -142,13 +154,22 @@ Coding:
 Notes:
    - ghostwriter
    - cherrytree
+   - obsidian
    - drawio
-    
+
+Net:
+   - machanger
+
 Server:
    - nfsserver
 
 Opensource Research:
    - theharvester
+
+Encryption/Password Managers:
+   - keepassxc
+   - veracrypt
+   - bitwarden
 
 From apt repos:
    - smbclient
@@ -163,6 +184,7 @@ From apt repos:
    - sshuttle
    - gdb
    - 7zip
+   - latex
 
 Docker:
    - docker
