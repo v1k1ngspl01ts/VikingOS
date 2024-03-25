@@ -195,6 +195,6 @@ Docker:
 Docker, ruby, go and all the tools from the apt repos are automatically installed. The rest of the tools can be either select or not select for install when the script is run. 
 
 # Requirements
-Debian 12 (or newer)\ 
-Ubuntu 22.04 (or newer)\
-~55 GB of free space on drive after OS install
+- Debian 12 (or newer)
+- Ubuntu 22.04 (or newer LTS only)
+- ~65 GB of free space on drive after OS install
