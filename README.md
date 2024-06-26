@@ -1,5 +1,5 @@
 # VikingOS
-![_5d4be6af-f44a-4de5-8449-3fcfbf95d752](https://github.com/v1k1ngspl01ts/VikingOS/assets/160347797/30fce136-48fd-4974-b203-5776d992b110)
+![_e6a334b7-19c0-4140-8dc3-e47f140ba2c8](https://github.com/v1k1ngspl01ts/VikingOS/assets/160347797/f1ecd534-b998-4f8e-9b2c-f09da8f0ca96)
 
 The VikingOS shell script takes a Debian or Ubuntu os and turns it into a penetration testing distro. It has currently been tested on Debian 12 and Ubuntu 22.04. It currently installs the following tools:
 
@@ -9,7 +9,6 @@ Scanning:
    - nbtscan
     
 Bruteforce:
-   - crackmapexec
    - netexec
    - medusa
    - hydra
@@ -25,6 +24,8 @@ SQL:
 
 Relay:
    - mitm6
+   - ettercap
+   - bettercap
     
 Web:
    - burpsuite
@@ -35,7 +36,7 @@ Web:
    - gobuster
    - cewl
    - cadaver
-   - web-check
+   - webcheck
 
 SNMP:
    - onesixtyone
@@ -52,6 +53,7 @@ Forensics:
    - ghidra
    - radare2
    - gdbpeda
+   - jadx
 
 Resources:
    - seclists
@@ -68,8 +70,8 @@ Password cracking:
 
 Windows:
    - impacket
-   - bloodhound/sharphound
-   - nidhogg (need a windows machine with VS to build)
+   - bloodhound
+   - nidhogg (need to compile on windows)
    - openldap
    - mimikatz
    - kekeo
@@ -85,16 +87,22 @@ Windows:
    - certipy
    - incognito
    - sysinternals
+   - godpotato
+   - juicypotato
+   - printspoofer
+   - roguepotato
     
 Linux:
    - pspy
    - sshsnake
-   - reptile
+   - reptile (needs compile)
    - busybox
 
 Cloud:
    - awsbucketdump
-   - aws_consoler
+   - aws-consoler
+   - pacu
+   - enumerate-iam
    - azurehound
    - awscli
    - googlecli
@@ -109,8 +117,9 @@ Phising:
 Evasion:
    - donut
    - scarecrow
+   - ebowla
 
-Pivoting:
+Pivot:
    - chisel
    - ligolo-ng
 
@@ -145,7 +154,6 @@ Coding:
    - musl
    - perl
    - ruby
-   - python3
    - rust
    - clang
    - mingw
@@ -156,12 +164,12 @@ Coding:
 Notes:
    - ghostwriter
    - cherrytree
-   - obsidian
    - drawio
+   - obsidian
 
 Net:
-   - machanger
-
+   - macchanger
+    
 Server:
    - nfsserver
 
@@ -169,8 +177,8 @@ Opensource Research:
    - theharvester
 
 Encryption/Password Managers:
-   - keepassxc
    - veracrypt
+   - keepass
    - bitwarden
 
 From apt repos:
@@ -186,7 +194,6 @@ From apt repos:
    - sshuttle
    - gdb
    - 7zip
-   - latex
 
 Docker:
    - docker
@@ -195,6 +202,6 @@ Docker:
 Docker, ruby, go and all the tools from the apt repos are automatically installed. The rest of the tools can be either select or not select for install when the script is run. 
 
 # Requirements
-- Debian 12 (or newer)
-- Ubuntu 22.04 (or newer LTS only)
-- ~65 GB of free space on drive after OS install
+Debian 12 (or newer)\ 
+Ubuntu 22.04 (or newer)\
+~55 GB of free space on drive after OS install
