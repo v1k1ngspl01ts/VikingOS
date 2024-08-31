@@ -1656,6 +1656,20 @@ install_obsidian() {
 	rm /opt/vikingos/logs/obsidian.err
 }
 
+install_latex() {
+	echo "latex" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/
+	curl -L -o install-tl-unx.tar.gz https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | &tee -a /opt/vikingos/logs/latex.err
+	zcat < install-tl-unx.tar.gz | tar xf - | &tee -a /opt/vikingos/logs/latex.err
+	rm -f install-tl-unx.tar.gz
+	cd install-tl-*
+	perl ./install-tl --no-interaction | &tee -a /opt/vikingos/logs/latex.err
+	latex_dir=`ls /usr/local/texlive/20*`
+	export PATH=$latex_dir/bin/x86_64-linux:$PATH
+	rm /opt/vikingos/logs/latex.err
+
+}
+
 install_drawio() {
 	echo "drawio" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/notes
@@ -1767,6 +1781,13 @@ install_bitwarden() {
 	chmod +x bitwarden
 	ln -s /opt/vikingos/encryption_password_managers/bitwarden/bitwarden /usr/local/bin/bitwarden
 	rm /opt/vikingos/logs/bitwardent.err
+}
+
+install_tor() {
+	echo "tor" >> /etc/vikingos/vikingos.config
+	apt-get install -y tor |& tee -a /opt/vikingos/logs/tor.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/tor.err
 }
 choices=''
 if [ $# -eq 1 ]
@@ -1884,6 +1905,7 @@ else
 		ghostwriter "" on
 		cherrytree "" on
 		obsidian "" on
+		latex "" on
 		drawio "" on
 		macchanger "" on
 		jd-gui "" on
@@ -1891,6 +1913,7 @@ else
 		keepassxc "" on
 		veracrypt "" on
 		bitwarden "" on
+		tor "" off
 		nfs-server "" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	clear
@@ -1917,11 +1940,9 @@ apt-get install -y python3-pip
 apt-get install -y wireshark
 apt-get install -y openjdk-17-jre openjdk-17-jdk
 apt-get install -y ruby-rubygems ruby-dev
-apt-get install -y tor
 apt-get install -y ssh
 apt-get install -y vim
 apt-get install -y texinfo
-apt-get install -y texlive
 apt-get install -y python3-pip python3-venv python3-virtualenv
 apt-get install -y sshuttle
 apt-get install -y gdb
@@ -2337,6 +2358,9 @@ do
 		obsidian)
 			install_obsidian
 			;;
+		latex)
+			install_latex
+			;;
 		drawio)
 			install_drawio
 			;;
@@ -2357,6 +2381,9 @@ do
 			;;
 		bitwarden)
 			install_bitwarden
+			;;
+		tor)
+			install_tor
 			;;
 		nfs-server)
 			install_nfsserver
