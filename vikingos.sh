@@ -728,6 +728,14 @@ install_nidhogg() {
 	rm /opt/vikingos/logs/nidhogg.err
 }
 
+install_zenmap() {
+	echo "zenmap" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	wget -q -O Zenmap_installer.exe "https://nmap.org/dist/nmap-7.95-setup.exe"
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+
 install_openldap() {
 	echo "openldap" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows
@@ -1942,6 +1950,7 @@ else
 		impacket "" on
 		bloodhound "" on
 		nidhogg "" on
+        zenmap "" on
 		openldap "" on
 		mimikatz "" on
 		kekeo "" on
@@ -2331,6 +2340,9 @@ do
 		nidhogg)
 			install_nidhogg
 			;;
+        zenmap)
+            install_zenmap
+            ;;
 		openldap)
 			install_openldap
 			;;
