@@ -179,6 +179,18 @@ install_responder() {
 	echo '/usr/share/.pvenv/bin/python3 /opt/vikingos/exploit/Responder/Responder.py "$@"' > /usr/local/bin/responder && chmod 555 /usr/local/bin/responder
 }
 
+install_keystoreexplorer() {
+	echo "keystoreexplorer" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/exploit
+	mkdir keystore_explorer
+	keystore_explorer_link=`curl -s https://api.github.com/repos/kaikramer/keystore-explorer/releases/latest | grep browser_download_url | grep ".deb" | cut -d '"' -f 4 | xargs -n 1 curl -L -O`
+	curl -L -O -J $keystore_explorer_link |& tee -a /opt/vikingos/logs/keystoreexplorer.err
+	if [ $? -ne 0 ]; then return 1; fi
+	dpkg -i *.deb |& tee -a /opt/vikingos/logs/keystoreexplorer.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/keystoreexplorer.err
+}
+
 install_flamingo() {
 	echo "flamingo" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/exploit
@@ -376,6 +388,19 @@ install_webcheck() {
 	echo 'if [ "$EUID" -ne 0 ]; then echo "Please run as root by either using sudo su or su root" && exit; fi; export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && cd /opt/vikingos/web/web-check && yarn serve' > /usr/local/bin/web-check && chmod 555 /usr/local/bin/web-check
 }
 
+install_firefoxtools() {
+	echo "firefoxtools" >> /etc/vikingos/firefoxtools.config
+	cd /opt/vikingos/web
+    mkdir firefoxtools
+	wget -O multi-account-containers.xpi "https://addons.mozilla.org/firefox/downloads/latest/multi-account-containers/addon-5993-latest.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
+	if [ $? -ne 0 ]; then return 1; fi
+	wget -O foxyproxy.xpi "https://addons.mozilla.org/firefox/downloads/latest/foxyproxy-standard/addon-2464-latest.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
+    if [ $? -ne 0 ]; then return 1; fi
+    wget -O trufflehog.xpi "https://addons.mozilla.org/firefox/downloads/file/4035826/trufflehog-0.0.1.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
+    if [ $? -ne 0 ]; then return 1; fi
+  	rm /opt/vikingos/logs/firefoxtools.err
+
+
 #snmp
 
 install_onesixtyone() {
@@ -535,6 +560,14 @@ install_seclists() {
 	rm /opt/vikingos/logs/seclists.err
 }
 
+install_hacktricks() {
+	echo "hacktricks" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/resources
+	git clone https://github.com/HackTricks-wiki/hacktricks |& tee -a /opt/vikingos/logs/hacktricks.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/hacktricks.err
+}
+
 install_payloadallthethings() {
 	echo "payloadallthethings" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/resources
@@ -551,6 +584,20 @@ install_rockyou() {
 	rm /opt/vikingos/logs/rockyou.err
 }
 
+install_kwprocessor() {
+	echo "kwprocessor(" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/password-cracking
+    mkdir keyboardwalk_generator
+    cd keyboardwalk_generator
+	kwprocessor_download=`curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url" | cut -d '"' -f 4 | wget -i -`
+	curl -L -O -J $kwprocessor |& tee -a /opt/vikingos/logs/kwprocessor.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	7z x kwprocessor-1.00.7z
+    if [ $? -ne 0 ]; then return 1; fi 
+    curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url.*tar.gz" | cut -d '"' -f 4 | wget -i - 
+    if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/kwprocessor.err
+}
 
 install_crackstationwordlists() {
 	echo "crackstation-wordlists" >> /etc/vikingos/vikingos.config
@@ -890,6 +937,35 @@ install_roguepotato() {
 	rm /opt/vikingos/logs/roguepotato.err
 }
 
+install_powershell() {
+	echo "powershell" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	apt install -y wget apt-transport-https software-properties-common
+	wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+	if [ $? -ne 0 ]; then return 1; fi
+	dpkg -i packages-microsoft-prod.deb
+	if [ $? -ne 0 ]; then return 1; fi
+	apt update
+	if [ $? -ne 0 ]; then return 1; fi
+	sudo apt install -y powershell
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+install_winscp() {
+	echo "winscp" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	wget -q -O WinSCP_portable.exe "https://cdn.winscp.net/files/WinSCP-6.3.4-Portable.zip?secure=hx8AyUXSE7bflXNSE5UbeQ==,1725135861"
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+install_7zip() {
+	echo "7zip" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	wget -q -O 7zip.exe "https://7-zip.org/a/7z2408-x64.exe"
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+
 #linux
 
 install_pspy() {
@@ -1181,6 +1257,13 @@ install_chisel() {
 	rm /opt/vikingos/logs/chisel.err
 }
 
+install_uploadserver() {
+	echo "uploadserver" >> /etc/vikingos/vikingos.config
+	pip3 install uploadserver |& tee -a /opt/vikingos/logs/uploadserver.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/uploadserver.err
+	
+}
 install_ligolong()
 {
 	echo "ligolo-ng" >> /etc/vikingos/vikingos.config
@@ -1289,7 +1372,8 @@ install_sliver() {
 	if [ $? -ne 0 ]; then return 1; fi
 	cp /root/sliver-server /usr/local/bin/sliver-server
 	chmod +x /usr/local/bin/sliver-server
-	rm /opt/vikingos/logs/sliver.err
+    curl -s https://api.github.com/repos/BishopFox/sliver/releases/latest | grep browser_download_url | cut -d '"' -f 4 | xargs -n 1 curl -L -O  |& tee -a /opt/vikingos/logs/sliver.err
+    rm /opt/vikingos/logs/sliver.err
 }
 
 install_mythic() {
@@ -1532,6 +1616,7 @@ install_vscode() {
 	if [ $? -ne 0 ]; then return 1; fi
 	PATH=$PATH:/usr/sbin:/sbin dpkg -i * |& tee -a /opt/vikingos/logs/vscode.err
 	if [ $? -ne 0 ]; then return 1; fi
+
 	rm /opt/vikingos/logs/vscode.err
 }
 
@@ -1789,6 +1874,18 @@ install_tor() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/tor.err
 }
+
+install_zsh() {
+	echo "zsh" >> /etc/vikingos/vikingos.config
+	apt-get install -y zsh |& tee -a /opt/vikingos/logs/zsh.err
+	if [ $? -ne 0 ]; then return 1; fi
+    sudo snap install zellij --classic
+    if [ $? -ne 0 ]; then return 1; fi
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" |& tee -a /opt/vikingos/logs/zsh.err
+	rm /opt/vikingos/logs/zsh.err
+}
+
+
 choices=''
 if [ $# -eq 1 ]
   then
@@ -1804,6 +1901,7 @@ else
 		ncrack "" on
 		metasploit "" on
 		responder "" on
+        keystoreexplorer "" on
 		flamingo "" on
 		sqlmap "" on
 		mitm6 "" on
@@ -1817,6 +1915,7 @@ else
 		gobuster "" on
 		cewl "" on
 		cadaver "" on
+        firefoxtools "" on
 		web-check "" on
 		onesixtyone "" on
 		snmp "" on
@@ -1830,8 +1929,10 @@ else
 		gdbpeda "" on
 		jadx "" on
 		seclists "" on
+        hacktricks "" on
 		payloadallthethings "" on
 		rockyou "" on
+        kwprocessor "" on
 		crackstation-wordlists "" on
 		cyberchef "" on
 		crunch "" on
@@ -1860,6 +1961,9 @@ else
 		juicypotato "" on
 		printspoofer "" on
 		roguepotato "" on
+		powershell "" on
+        winscp "" on
+        7zip "" on
 		pspy "" on
 		sshsnake "" on
 		reptile "" on
@@ -1876,6 +1980,7 @@ else
 		donut "" on
 		scarecrow "" on
 		ebowla "" on
+        uploadserver "" on
 		chisel "" on
 		ligolo-ng "" on
 		sliver "" on
@@ -1914,6 +2019,7 @@ else
 		veracrypt "" on
 		bitwarden "" on
 		tor "" off
+        zsh "" on
 		nfs-server "" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	clear
@@ -1933,6 +2039,10 @@ apt-get install -y build-essential
 apt-get install -y libssl-dev
 apt-get install -y libssh-dev 
 apt-get install -y automake
+apt-get install -y gdb
+apt-get install -y nodejs 
+apt-get install -y node
+apt-get install -y npm
 apt-get install -y postgresql-client
 apt-get install -y sqlite3 sqlite3-tools
 apt-get install -y sqlitebrowser
@@ -1954,6 +2064,49 @@ apt-get install -y iptables-persistent
 apt-get install -y krb5-config krb5-user
 apt-get install -y freerdp2-x11
 apt-get install -y libffi-dev
+apt-get install -y screen
+apt-get install -y tmux
+apt-get install -y terminator
+apt-get install -y net-tools
+apt-get install -y xfburn
+apt-get install -y ipmitool
+apt-get install -y open-vm-tools
+apt-get install -y libreoffice
+apt-get install -y gimp
+apt-get install -y vlc
+apt-get install -y klogg
+apt-get install -y softhsm2
+apt-get install -y opensc
+apt-get install -y filezilla
+apt-get install -y samba
+apt-get install -y telnet
+apt-get install -y minicom
+apt-get install -y yubikey-manager
+apt-get install -y yubikey-luks
+apt-get install -y yubikey-piv-tool
+apt-get install -y yubikey-personalization
+apt-get install -y yubikey-personalization-gui
+apt-get install -y yubikey-manager-qt
+apt-get install -y yubioath-desktop
+apt-get install -y gnupg2
+apt-get install -y pcscd
+apt-get install -y scdaemon
+apt-get install -y pcscd
+apt-get install -y pcsc-tools
+apt-get install -y scdaemon 
+apt-get install -y gnupg2
+apt-get install -y kleopatra
+apt-get install -y scdaemon 
+apt-get install -y p7zip-full
+sudo snap install zellij --classic
+sudo snap install dbeaver-ce
+
+
+
+
+
+
+
 
 if [[ $OS == *"ubuntu"* ]]; then
 	apt-get install -y 7zip
@@ -2055,6 +2208,9 @@ do
 		responder)
 			install_responder
 			;;
+        keystoreexplorer)
+            install_keystoreexplorer
+            ;;
 		flamingo)
 			install_flamingo
 			;;
@@ -2094,6 +2250,9 @@ do
 		cadaver)
 			install_cadaver
 			;;
+        firefoxtools)
+            install_firefoxtools
+            ;;
 		web-check)
 			install_webcheck
 			;;
@@ -2132,6 +2291,9 @@ do
 			;;
 		seclists)
 			install_seclists
+            ;;
+        hacktricks)
+            install_hacktricks
 			;;
 		payloadallthethings)
 			install_payloadallthethings
@@ -2139,6 +2301,9 @@ do
 		rockyou)
 			install_rockyou
 			;;
+        kwprocessor)
+            install_kwprocessor
+            ;;
 		crackstation-wordlists)
 			install_crackstationwordlists
 			;;
@@ -2223,6 +2388,15 @@ do
 		roguepotato)
 			install_roguepotato
 			;;
+		powershell)
+			install_powershell
+			;;
+        winscp)
+            install_winscp
+            ;;
+        7zip)
+            install_7zip
+            ;;
 		pspy)
 			install_pspy
 			;;
@@ -2271,6 +2445,9 @@ do
 		ebowla)
 			install_ebowla
 			;;
+        uploadserver)
+            install_uploadserver
+            ;;
 		chisel)
 			install_chisel
 			;;
@@ -2385,6 +2562,9 @@ do
 		tor)
 			install_tor
 			;;
+        zsh)
+            install_zsh
+            ;;
 		nfs-server)
 			install_nfsserver
 			;;
@@ -2393,9 +2573,12 @@ done
 
 echo -ne "Thank you for using vikingos! Some tips:\n\n"
 echo -ne "\tFor future builds, you can use /etc/vikingos/vikingos.config to build this same config. Just do ./vikingos.sh vikingos.config!\n\n"
+echo -ne "\tFor sliver, make sure you start the service/server then run "armory install all" on the sliver-client and sliver-server to get all the extensions"
 echo -ne "\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\t"
 echo -ne "\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n"
+echno -ne "\tIf you install firefoxtools, you need to go to /opt/vikingos/web/firefoxtools and install the extensions manually"
 echo -ne "\tResources for the os are located at /usr/share/vikingos-resources\n\n"
+echo -ne "\tDev extensions for VS Code install script will need to be run as a normal user in the coding folder"
 echo -ne "\tFor cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this,  they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
 if [ -z "$(ls -A /opt/vikingos/logs)" ]; then
 	echo "All Packages installed!"
