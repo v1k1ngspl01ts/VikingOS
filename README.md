@@ -173,12 +173,10 @@ Coding:
 	    - redhat.vscode-yaml
        - ms-vscode-remote.remote-ssh
 	    - redhat.ansible
-       - ms-vscode-remote.remote-ssh
        - ms-vscode-remote.remote-containers
        - platformio.platformio-ide
 	    - ms-azuretools.vscode-bicep
 	    - ms-vscode.vscode-node-azure-pack
-	    - ms-vscode-remote.remote-ssh
 	    - ms-vscode-remote.remote-containers
 	    - ms-azure-devops.azure-pipelines
        - ms-azuretools.vscode-docker
@@ -195,6 +193,26 @@ Coding:
 	    - Oracle.oracle-java
 	    - vscodevim.vim
        - AmazonWebServices.aws-toolkit-vscode
+       - bierner.markdown-mermaid
+       - DavidAnson.vscode-markdownlint
+       - bierner.markdown-preview-github-styles
+       - bierner.markdown-checkbox
+       - ms-toolsai.datawrangler
+       - ms-toolsai.jupyter
+       - astral-sh.ruff
+       - njpwerner.autodocstring
+       - streetsidesoftware.code-spell-checker
+       - humao.rest-client
+       - redhat.java
+       - esbenp.prettier-vscode
+       - christian-kohler.npm-intellisense
+       - vscjava.vscode-java-debug
+       - ms-vscode.remote-explorer
+       - ms-vscode-remote.remote-ssh-edit
+       - golang.Go
+       - ms-vscode.cmake-tools
+       - ms-mssql.mssql
+       - vscodevim.vim
    - neovim
      - plugins:
        - vundle
