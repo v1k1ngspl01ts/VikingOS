@@ -1085,7 +1085,7 @@ install_boto3() {
     LOG_FILE="/opt/vikingos/logs/boto3.err"
 
     # Install boto3 using pip within the virtual environment
-    /usr/share/.pvenv/bin/pip3 install boto3 |& tee -a "$LOG_FILE"
+    /usr/share/.pvenv/bin/pip3 install boto3 botocore requests python-dotenv aws-secretsmanager-caching Flask fastapi uvicorn pydantic|& tee -a "$LOG_FILE"
     if [ $? -ne 0 ]; then return 1; fi
 
     # Clean up the log file upon successful installation
@@ -2071,52 +2071,103 @@ install_tor() {
 }
 
 install_vscode_extensions() {
-	echo "vscode-extensions" >> /etc/vikingos/vikingos.config
-	cd /opt/vikingos/coding
-	mkdir -p code_extensions
-	cd code_extensions
+    echo "vscode-extensions" >> /etc/vikingos/vikingos.config
 
-	EXTENSIONS=(
-	    "github.vscode-pull-request-github"
-	    "gitlab.gitlab-workflow"
-	    "ms-python.python"
-	    "ms-python.vscode-pylance"
-	    "ms-azuretools.vscode-docker"
-	    "ms-kubernetes-tools.vscode-kubernetes-tools"
-	    "hashicorp.terraform"
-	    "redhat.vscode-yaml"
+    cd /opt/vikingos/coding || exit 1
+    mkdir -p code_extensions
+    cd code_extensions || exit 1
+
+    EXTENSIONS=(
+        "github.vscode-pull-request-github"
+        "gitlab.gitlab-workflow"
+        "ms-python.python"
+		"ms-python.debugpy"
+        "ms-python.vscode-pylance"
+        "ms-azuretools.vscode-docker"
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+        "hashicorp.terraform"
+        "redhat.vscode-yaml"
         "ms-vscode-remote.remote-ssh"
-	    "redhat.ansible"
-        "ms-vscode-remote.remote-ssh"
+        "redhat.ansible"
         "ms-vscode-remote.remote-containers"
         "platformio.platformio-ide"
-	    "ms-azuretools.vscode-bicep"
-	    "ms-vscode.vscode-node-azure-pack"
-	    "ms-vscode-remote.remote-ssh"
-	    "ms-vscode-remote.remote-containers"
-	    "ms-azure-devops.azure-pipelines"
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-bicep"
+        "ms-vscode.vscode-node-azure-pack"
+        "ms-azure-devops.azure-pipelines"
         "ms-vscode.cpptools"
         "ms-vscode.powershell"
         "ms-vscode.cpptools-extension-pack"
-	    "mongodb.mongodb-vscode"
-	    "vscjava.vscode-java-pack"
-	    "sonarsource.sonarlint-vscode"
-	    "ms-vscode.powershell"
-	    "atlassian.atlascode"
-	    "ms-vscode.cpptools"
-	    "ms-vscode.cpptools-extension-pack"
-	    "Oracle.oracle-java"
-	    "vscodevim.vim"
+        "mongodb.mongodb-vscode"
+        "vscjava.vscode-java-pack"
+        "sonarsource.sonarlint-vscode"
+        "atlassian.atlascode"
+        "Oracle.oracle-java"
+        "vscodevim.vim"
         "AmazonWebServices.aws-toolkit-vscode"
-	)
+		"bierner.markdown-mermaid"
+		"bierner.markdown-footnotes"
+		"DavidAnson.vscode-markdownlint"
+		"bierner.markdown-preview-github-styles"
+		"bierner.markdown-checkbox"
+		"ms-toolsai.datawrangler"
+		"ms-toolsai.jupyter"
+		"astral-sh.ruff"
+		"njpwerner.autodocstring"
+		"streetsidesoftware.code-spell-checker"
+		"humao.rest-client"
+		"redhat.java"
+		"esbenp.prettier-vscode"
+		"christian-kohler.npm-intellisense"
+		"vscjava.vscode-java-debug"
+		"ms-vscode.remote-explorer"
+		"ms-vscode-remote.remote-ssh-edit"
+		"golang.Go"
+		"ms-vscode.cmake-tools"
+		"ms-mssql.mssql"
+		"vscodevim.vim"
+    )
 
-	for extension in "${EXTENSIONS[@]}"; do
-	    code --install-extension "$extension" --no-sandbox |& tee -a /opt/vikingos/logs/vscode_extensions.err
-	    if [ $? -ne 0 ]; then return 1; fi
-	done
+    LOG_FILE="/opt/vikingos/logs/vscode_extensions.err"
+    mkdir -p /opt/vikingos/logs
 
-	rm /opt/vikingos/logs/vscode_extensions.err
+    for extension in "${EXTENSIONS[@]}"; do
+        echo "[+] Installing $extension"
+        code --install-extension "$extension" --no-sandbox |& tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then
+            echo "[-] Failed to install $extension"
+            return 1
+        fi
+    done
+
+    echo "[+] Hardening VS Code telemetry settings for Ubuntu..."
+
+    VSCODE_SETTINGS_PATH="$HOME/.config/Code/User/settings.json"
+    mkdir -p "$(dirname "$VSCODE_SETTINGS_PATH")"
+
+    cat << 'EOF' > "$VSCODE_SETTINGS_PATH"
+{
+    "telemetry.telemetryLevel": "off",
+    "telemetry.enableTelemetry": false,
+    "telemetry.enableCrashReporter": false,
+    "rest-client.enableTelemetry": false,
+    "python.enableTelemetry": false,
+    "docker.enableTelemetry": false,
+    "vs-kubernetes.enableTelemetry": false,
+    "bicep.enableTelemetry": false,
+    "aws.enableTelemetry": false,
+    "sonarlint.disableTelemetry": true,
+    "remote.SSH.enableTelemetry": false,
+    "remote.containers.enableTelemetry": false,
+    "remote.WSL.enableTelemetry": false,
+    "extensions.ignoreRecommendations": true
+	"docker.lsp.telemetry": "off"
+	"redhat.telemetry.enabled": false
+}
+EOF
+
+    echo "[+] VS Code telemetry settings applied at: $VSCODE_SETTINGS_PATH"
+
+    rm -f "$LOG_FILE"
 }
 
 install_zsh() {
