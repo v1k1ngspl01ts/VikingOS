@@ -728,14 +728,6 @@ install_nidhogg() {
 	rm /opt/vikingos/logs/nidhogg.err
 }
 
-install_zenmap() {
-	echo "zenmap" >> /etc/vikingos/vikingos.config
-	cd /opt/vikingos/windows-uploads
-	wget -q -O Zenmap_installer.exe "https://nmap.org/dist/nmap-7.95-setup.exe"
-	if [ $? -ne 0 ]; then return 1; fi
-}
-
-
 install_openldap() {
 	echo "openldap" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows
@@ -940,7 +932,7 @@ install_roguepotato() {
 	cd /opt/vikingos/windows-uploads
 	curl -s https://api.github.com/repos/antonioCoco/RoguePotato/releases/latest | grep browser_download_url | grep "RoguePotato" | cut -d '"' -f 4 | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/roguepotato.err
 	if [ $? -ne 0 ]; then return 1; fi
-	unzip -d RoguePotato RoguePotato.zip
+	unzip -d RoguePotato RoguePotato.zipscreen
 	rm RoguePotato.zip
 	rm /opt/vikingos/logs/roguepotato.err
 }
@@ -1167,6 +1159,61 @@ install_set() {
 	rm /opt/vikingos/logs/social-engineer-toolkit.err
 }
 
+install_evilginx2() {
+    echo "evilginx2" >> /etc/vikingos/vikingos.config
+    LOG_FILE="/opt/vikingos/logs/evilginx2.err"
+    TARGET_DIR="/opt/vikingos/phishing/evilginx2"
+
+    # Create the target directory
+    mkdir -p "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    cd "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Define URLs for the Windows and Linux releases
+    WINDOWS_URL="https://github.com/kgretzky/evilginx2/releases/download/v3.3.0/evilginx-v3.3.0-windows-64bit.zip"
+    LINUX_URL="https://github.com/kgretzky/evilginx2/releases/download/v3.3.0/evilginx-v3.3.0-linux-64bit.zip"
+
+    # Download the Windows release
+    wget -O "evilginx-v3.3.0-windows-64bit.zip" "$WINDOWS_URL" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Download the Linux release
+    wget -O "evilginx-v3.3.0-linux-64bit.zip" "$LINUX_URL" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Extract each zip file into its own directory
+    for zip_file in *.zip; do
+        dir_name="${zip_file%.zip}"
+        mkdir -p "$dir_name" |& tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then return 1; fi
+
+        unzip -o "$zip_file" -d "$dir_name" |& tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then return 1; fi
+    done
+
+    # Make the Linux binary executable
+    chmod +x "$TARGET_DIR/evilginx-v3.3.0-linux-64bit/evilginx" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Clone phishlet repositories
+    mkdir -p "$TARGET_DIR/phishlets" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    cd "$TARGET_DIR/phishlets" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    git clone https://github.com/An0nUD4Y/Evilginx2-Phishlets.git |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    git clone https://github.com/ArchonLabs/evilginx2-phishlets.git |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Clean up the log file upon successful completion
+    rm "$LOG_FILE"
+}
+
 #evasion
 
 install_donut() {
@@ -1179,6 +1226,27 @@ install_donut() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ln -s /opt/vikingos/evasion/donut/donut /usr/local/bin/donut
 	rm /opt/vikingos/logs/donut.err
+}
+
+install_FilelessPELoader() {
+	echo "FilelessPELoader" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/evasion
+	git clone https://github.com/SaadAhla/FilelessPELoader.git |& tee -a /opt/vikingos/logs/filelesspeloader.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	python3 -m venv /usr/share/.FilelessPELoader
+	/usr/share/.FilelessPELoader/bin/pip3 install pycryptodome pycryptodomex |& tee -a /opt/vikingos/logs/filelesspeloader.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	# Python launcher wrapper
+	echo '/usr/share/.FilelessPELoader/bin/python3 /opt/vikingos/evasion/FilelessPELoader/loader.py "$@"' > /usr/local/bin/filelesspeloader-python
+	chmod 555 /usr/local/bin/filelesspeloader-python
+
+	# Add compile reminder to README
+	echo "[*] modify c file to obfuscate it, then to compile, and name the file something not what it is :) :" > /opt/vikingos/evasion/FilelessPELoader/README.txt
+	echo "x86_64-w64-mingw32-gcc -o FilelessPELoader.exe FilelessPELoader.c" >> /opt/vikingos/evasion/FilelessPELoader/README.txt
+
+	rm /opt/vikingos/logs/filelesspeloader.err
 }
 
 install_scarecrow() {
@@ -1737,6 +1805,88 @@ install_cherrytree() {
 	rm /opt/vikingos/logs/cherrytree.err
 }
 
+install_mousetrap() {
+set -e
+
+# Install pynvim for Python 3 support in Neovim
+pip3 install --user --upgrade pynvim
+
+# Define directories
+VIM_DIR="$HOME/.vim"
+BUNDLE_DIR="$VIM_DIR/bundle"
+VUNDLE_DIR="$BUNDLE_DIR/Vundle.vim"
+NVIM_CONFIG_DIR="$HOME/.config/nvim"
+INIT_VIM="$NVIM_CONFIG_DIR/init.vim"
+
+# Create necessary directories
+mkdir -p "$BUNDLE_DIR"
+mkdir -p "$NVIM_CONFIG_DIR"
+
+# Install Vundle if not already installed
+if [ ! -d "$VUNDLE_DIR" ]; then
+  git clone https://github.com/VundleVim/Vundle.vim.git "$VUNDLE_DIR"
+fi
+
+# Create init.vim with plugin configurations
+cat > "$INIT_VIM" <<EOL
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+" Mousetrap plugin
+Plugin 'CleverNamesTaken/Mousetrap'
+
+" UltiSnips for snippets
+Plugin 'SirVer/ultisnips'
+
+" vim-markdown for Markdown editing
+Plugin 'preservim/vim-markdown'
+
+call vundle#end()            " required
+filetype plugin indent on    " required
+
+" UltiSnips configuration
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<c-j>"
+let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+
+" vim-markdown configuration
+let g:vim_markdown_folding_disabled = 1
+let g:vim_markdown_conceal = 0
+let g:vim_markdown_frontmatter = 1
+EOL
+
+# Install plugins using Neovim
+nvim +PluginInstall +qall
+
+echo "Neovim setup complete with Vundle, Mousetrap, UltiSnips, and vim-markdown."
+
+}
+
+install_sysreptor() {
+	echo "sysreptor" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/notes
+	mkdir sysreptor
+	cd sysreptor
+
+	# Run official installer script
+	bash <(curl -s https://docs.sysreptor.com/install.sh) |& tee -a /opt/vikingos/logs/sysreptor.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	# Optional: Create symlink if SysReptor binary exists in a known location
+	if [[ -f /opt/sysreptor/sysreptor ]]; then
+		ln -s /opt/sysreptor/sysreptor /usr/local/bin/sysreptor
+	fi
+
+	rm /opt/vikingos/logs/sysreptor.err
+}
+
 install_obsidian() {
 	echo "obsidian" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/notes
@@ -1752,11 +1902,11 @@ install_obsidian() {
 install_latex() {
 	echo "latex" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/
-	curl -L -o install-tl-unx.tar.gz https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | &tee -a /opt/vikingos/logs/latex.err
-	zcat < install-tl-unx.tar.gz | tar xf - | &tee -a /opt/vikingos/logs/latex.err
+	curl -L -o install-tl-unx.tar.gz https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz |& tee -a /opt/vikingos/logs/latex.err
+	zcat < install-tl-unx.tar.gz | tar xf - |& tee -a /opt/vikingos/logs/latex.err
 	rm -f install-tl-unx.tar.gz
 	cd install-tl-*
-	perl ./install-tl --no-interaction | &tee -a /opt/vikingos/logs/latex.err
+	perl ./install-tl --no-interaction |& tee -a /opt/vikingos/logs/latex.err
 	latex_dir=`ls /usr/local/texlive/20*`
 	export PATH=$latex_dir/bin/x86_64-linux:$PATH
 	rm /opt/vikingos/logs/latex.err
@@ -1883,6 +2033,55 @@ install_tor() {
 	rm /opt/vikingos/logs/tor.err
 }
 
+install_vscode_extensions() {
+	echo "vscode-extensions" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/coding
+	mkdir -p code_extensions
+	cd code_extensions
+
+	EXTENSIONS=(
+	    "github.vscode-pull-request-github"
+	    "gitlab.gitlab-workflow"
+	    "ms-python.python"
+	    "ms-python.vscode-pylance"
+	    "ms-azuretools.vscode-docker"
+	    "ms-kubernetes-tools.vscode-kubernetes-tools"
+	    "hashicorp.terraform"
+	    "redhat.vscode-yaml"
+        "ms-vscode-remote.remote-ssh"
+	    "redhat.ansible"
+        "ms-vscode-remote.remote-ssh"
+        "ms-vscode-remote.remote-containers"
+        "platformio.platformio-ide"
+	    "ms-azuretools.vscode-bicep"
+	    "ms-vscode.vscode-node-azure-pack"
+	    "ms-vscode-remote.remote-ssh"
+	    "ms-vscode-remote.remote-containers"
+	    "ms-azure-devops.azure-pipelines"
+        "ms-azuretools.vscode-docker"
+        "ms-vscode.cpptools"
+        "ms-vscode.powershell"
+        "ms-vscode.cpptools-extension-pack"
+	    "mongodb.mongodb-vscode"
+	    "vscjava.vscode-java-pack"
+	    "sonarsource.sonarlint-vscode"
+	    "ms-vscode.powershell"
+	    "atlassian.atlascode"
+	    "ms-vscode.cpptools"
+	    "ms-vscode.cpptools-extension-pack"
+	    "Oracle.oracle-java"
+	    "vscodevim.vim"
+        "AmazonWebServices.aws-toolkit-vscode"
+	)
+
+	for extension in "${EXTENSIONS[@]}"; do
+	    code --install-extension "$extension" --no-sandbox |& tee -a /opt/vikingos/logs/vscode_extensions.err
+	    if [ $? -ne 0 ]; then return 1; fi
+	done
+
+	rm /opt/vikingos/logs/vscode_extensions.err
+}
+
 install_zsh() {
 	echo "zsh" >> /etc/vikingos/vikingos.config
 	apt-get install -y zsh |& tee -a /opt/vikingos/logs/zsh.err
@@ -1891,6 +2090,22 @@ install_zsh() {
     if [ $? -ne 0 ]; then return 1; fi
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" |& tee -a /opt/vikingos/logs/zsh.err
 	rm /opt/vikingos/logs/zsh.err
+}
+
+install_glab() {
+	echo "glab" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/coding
+	mkdir glab
+	cd glab
+
+	# Download latest .deb package
+	wget https://gitlab.com/api/v4/projects/25320657/packages/generic/glab/latest/glab_amd64.deb |& tee -a /opt/vikingos/logs/glab.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	apt install -y ./glab_amd64.deb |& tee -a /opt/vikingos/logs/glab.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	rm /opt/vikingos/logs/glab.err
 }
 
 
@@ -1950,7 +2165,6 @@ else
 		impacket "" on
 		bloodhound "" on
 		nidhogg "" on
-        zenmap "" on
 		openldap "" on
 		mimikatz "" on
 		kekeo "" on
@@ -1986,18 +2200,20 @@ else
 		googlecli "" on
 		trufflehog "" on
 		social-engineer-toolkit "" on
+        evilginx2 "" on
 		donut "" on
+        FilelessPELoader "" on
 		scarecrow "" on
 		ebowla "" on
         uploadserver "" on
 		chisel "" on
 		ligolo-ng "" on
 		sliver "" on
-		mythic "" on
-		merlin "" on
-		villain "" on
-		havoc "" on
-		poshc2 "" on
+		mythic "" off
+		merlin "" off
+		villain "" off
+		havoc "" off
+		poshc2 "" off
 		peass-ng "" on
 		okteta "" on
 		bless "" on
@@ -2016,10 +2232,13 @@ else
 		clang "" on
 		mingw-w64 "" on
 		nim "" on
-		ghostwriter "" on
+        vscode_extensions_NOT_OPSEC_SAFE "" off
+		ghostwriter "" off
 		cherrytree "" on
+        mousetrap "" on
+        sysreptor "" on
 		obsidian "" on
-		latex "" on
+		latex "" off
 		drawio "" on
 		macchanger "" on
 		jd-gui "" on
@@ -2107,9 +2326,41 @@ apt-get install -y gnupg2
 apt-get install -y kleopatra
 apt-get install -y scdaemon 
 apt-get install -y p7zip-full
+apt-get install -y net-tools
+apt-get install -y neovim
+pip3 install --user --upgrade pynvim
+apt-get install -y sed
+apt-get install -y uuid-runtime
+apt-get install -y coreutils
+apt-get install -y socat
+apt-get install -y minicom 
+apt-get install -y fzf
+apt-get install -y bat
+apt-get install -y ripgrep
 sudo snap install zellij --classic
 sudo snap install dbeaver-ce
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
 
+
+
+# Install Jira CLI tools
+echo "Installing Jira CLI tools..."
+npm install -g jira-cli
+
+# Install Confluence CLI tools
+echo "Installing Confluence CLI tools..."
+npm install -g confluence-cli
+
+# Install Bitbucket CLI tools
+echo "Installing Bitbucket CLI tools..."
+npm install -g bitbucket-cli
+
+echo "Installing AWS SDK npm"
+npm install -g aws-sdk
+
+
+echo "Atlassian CLI tools installation complete."
+echo "Development environment setup complete."
 
 
 
@@ -2340,9 +2591,6 @@ do
 		nidhogg)
 			install_nidhogg
 			;;
-        zenmap)
-            install_zenmap
-            ;;
 		openldap)
 			install_openldap
 			;;
@@ -2448,9 +2696,15 @@ do
 		social-engineer-toolkit)
 			install_set
 			;;
+        evilginx2)
+            install_evilginx2
+            ;;
 		donut)
 			install_donut
 			;;
+        FilelessPELoader)
+            install_FilelessPELoader
+            ;;
 		scarecrow)
 			install_scarecrow
 			;;
@@ -2535,6 +2789,9 @@ do
 		mingw-w64)
 			install_mingw
 			;;
+        vscode_extensions_NOT_OPSEC_SAFE)
+            install_vscode_extensions
+            ;;
 		nim)
 			install_nim
 			;;
@@ -2543,6 +2800,12 @@ do
 			;;
 		cherrytree)
 			install_cherrytree
+            ;;
+        mousetrap)
+            install_mousetrap
+            ;;
+        sysreptor)
+            install_sysreptor
 			;;
 		obsidian)
 			install_obsidian
@@ -2576,6 +2839,9 @@ do
 			;;
         zsh)
             install_zsh
+            ;;
+        glab) 
+            install_glab
             ;;
 		nfs-server)
 			install_nfsserver
