@@ -7,6 +7,7 @@ Scanning:
    - nmap
    - masscan
    - nbtscan
+   - zenmap for windows upload
     
 Bruteforce:
    - netexec
@@ -97,6 +98,9 @@ Linux:
    - sshsnake
    - reptile (needs compile)
    - busybox
+   - zsh:
+     - zellij
+     - ohmyzsh
 
 Cloud:
    - awsbucketdump
@@ -105,6 +109,9 @@ Cloud:
    - enumerate-iam
    - azurehound
    - awscli
+   - AWS SDK
+     - npm
+     - python boto3
    - googlecli
    - azurecli
 
@@ -113,11 +120,16 @@ Github:
 
 Phising:
    - social-engineer-toolkit
+   - evilngix2
+     - phishlets:
+       - n0nUD4Y/Evilginx2-Phishlets
+       - ArchonLabs/evilginx2-phishlets
 
 Evasion:
    - donut
    - scarecrow
    - ebowla
+   - FilelessPELoader
 
 Pivot:
    - chisel
@@ -150,6 +162,45 @@ Virtualization:
 
 Coding:
    - vscode
+     - vsvode extensions:
+	    - github.vscode-pull-request-github
+	    - gitlab.gitlab-workflow
+	    - ms-python.python
+	    - ms-python.vscode-pylance
+	    - ms-azuretools.vscode-docker
+	    - ms-kubernetes-tools.vscode-kubernetes-tools
+	    - hashicorp.terraform
+	    - redhat.vscode-yaml
+       - ms-vscode-remote.remote-ssh
+	    - redhat.ansible
+       - ms-vscode-remote.remote-ssh
+       - ms-vscode-remote.remote-containers
+       - platformio.platformio-ide
+	    - ms-azuretools.vscode-bicep
+	    - ms-vscode.vscode-node-azure-pack
+	    - ms-vscode-remote.remote-ssh
+	    - ms-vscode-remote.remote-containers
+	    - ms-azure-devops.azure-pipelines
+       - ms-azuretools.vscode-docker
+       - ms-vscode.cpptools
+       - ms-vscode.powershell
+       - ms-vscode.cpptools-extension-pack
+	    - mongodb.mongodb-vscode
+	    - vscjava.vscode-java-pack
+	    - sonarsource.sonarlint-vscode
+	    - ms-vscode.powershell
+	    - atlassian.atlascode
+	    - ms-vscode.cpptools
+	    - ms-vscode.cpptools-extension-pack
+	    - Oracle.oracle-java
+	    - vscodevim.vim
+       - AmazonWebServices.aws-toolkit-vscode
+   - neovim
+     - plugins:
+       - vundle
+       - mousetrap
+       - ultisnips
+       - vim-markdown
    - nasm
    - musl
    - perl
@@ -160,18 +211,24 @@ Coding:
    - nim
    - go
    - jd-gui
+   - glab(gitlab cli)
+   - confluence cli
+   - bitbucket cli
+   - jira cli
 
 Notes:
    - ghostwriter
    - cherrytree
    - drawio
    - obsidian
+   - sysreptor
 
 Net:
    - macchanger
     
 Server:
    - nfsserver
+   - HP ilo utility(windows upload)
 
 Opensource Research:
    - theharvester
@@ -194,6 +251,52 @@ From apt repos:
    - sshuttle
    - gdb
    - 7zip
+   - updates to Viking apt repos
+   - screen
+   - tmux
+   - terminator
+   - net-tools
+   - xfburn
+   - ipmitool
+   - open-vm-tools
+   - libreoffice
+   - gimp
+   - vlc
+   - klogg
+   - softhsm2
+   - opensc
+   - filezilla
+   - samba
+   - telnet
+   - minicom
+   - yubikey-manager
+   - yubikey-luks
+   - yubikey-piv-tool
+   - yubikey-personalization
+   - yubikey-personalization-gui
+   - yubikey-manager-qt
+   - yubioath-desktop
+   - gnupg2
+   - scdaemon
+   - pcscd
+   - pcsc-tools
+   - scdaemon 
+   - gnupg2
+   - kleopatra
+   - scdaemon 
+   - p7zip-full
+   - net-tools
+   - neovim
+   - pynvim
+   - uuid-runtime
+   - coreutils
+   - socat
+   - minicom 
+   - fzf
+   - bat
+   - ripgrep
+   - dbeaver-ce
+
 
 Docker:
    - docker
@@ -204,4 +307,4 @@ Docker, ruby, go and all the tools from the apt repos are automatically installe
 # Requirements
 Debian 12 (or newer)\ 
 Ubuntu 22.04 (or newer)\
-~55 GB of free space on drive after OS install
+~80 GB of free space on drive after OS install
