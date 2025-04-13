@@ -179,6 +179,18 @@ install_responder() {
 	echo '/usr/share/.pvenv/bin/python3 /opt/vikingos/exploit/Responder/Responder.py "$@"' > /usr/local/bin/responder && chmod 555 /usr/local/bin/responder
 }
 
+install_keystoreexplorer() {
+	echo "keystoreexplorer" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/exploit
+	mkdir keystore_explorer
+	keystore_explorer_link=`curl -s https://api.github.com/repos/kaikramer/keystore-explorer/releases/latest | grep browser_download_url | grep ".deb" | cut -d '"' -f 4 | xargs -n 1 curl -L -O`
+	curl -L -O -J $keystore_explorer_link |& tee -a /opt/vikingos/logs/keystoreexplorer.err
+	if [ $? -ne 0 ]; then return 1; fi
+	dpkg -i *.deb |& tee -a /opt/vikingos/logs/keystoreexplorer.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/keystoreexplorer.err
+}
+
 install_flamingo() {
 	echo "flamingo" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/exploit
@@ -376,6 +388,19 @@ install_webcheck() {
 	echo 'if [ "$EUID" -ne 0 ]; then echo "Please run as root by either using sudo su or su root" && exit; fi; export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && cd /opt/vikingos/web/web-check && yarn serve' > /usr/local/bin/web-check && chmod 555 /usr/local/bin/web-check
 }
 
+install_firefoxtools() {
+	echo "firefoxtools" >> /etc/vikingos/firefoxtools.config
+	cd /opt/vikingos/web
+    mkdir firefoxtools
+	wget -O multi-account-containers.xpi "https://addons.mozilla.org/firefox/downloads/latest/multi-account-containers/addon-5993-latest.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
+	if [ $? -ne 0 ]; then return 1; fi
+	wget -O foxyproxy.xpi "https://addons.mozilla.org/firefox/downloads/latest/foxyproxy-standard/addon-2464-latest.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
+    if [ $? -ne 0 ]; then return 1; fi
+    wget -O trufflehog.xpi "https://addons.mozilla.org/firefox/downloads/file/4035826/trufflehog-0.0.1.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
+    if [ $? -ne 0 ]; then return 1; fi
+  	rm /opt/vikingos/logs/firefoxtools.err
+
+
 #snmp
 
 install_onesixtyone() {
@@ -535,6 +560,14 @@ install_seclists() {
 	rm /opt/vikingos/logs/seclists.err
 }
 
+install_hacktricks() {
+	echo "hacktricks" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/resources
+	git clone https://github.com/HackTricks-wiki/hacktricks |& tee -a /opt/vikingos/logs/hacktricks.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/hacktricks.err
+}
+
 install_payloadallthethings() {
 	echo "payloadallthethings" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/resources
@@ -551,6 +584,20 @@ install_rockyou() {
 	rm /opt/vikingos/logs/rockyou.err
 }
 
+install_kwprocessor() {
+	echo "kwprocessor(" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/password-cracking
+    mkdir keyboardwalk_generator
+    cd keyboardwalk_generator
+	kwprocessor_download=`curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url" | cut -d '"' -f 4 | wget -i -`
+	curl -L -O -J $kwprocessor |& tee -a /opt/vikingos/logs/kwprocessor.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	7z x kwprocessor-1.00.7z
+    if [ $? -ne 0 ]; then return 1; fi 
+    curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url.*tar.gz" | cut -d '"' -f 4 | wget -i - 
+    if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/kwprocessor.err
+}
 
 install_crackstationwordlists() {
 	echo "crackstation-wordlists" >> /etc/vikingos/vikingos.config
@@ -890,6 +937,35 @@ install_roguepotato() {
 	rm /opt/vikingos/logs/roguepotato.err
 }
 
+install_powershell() {
+	echo "powershell" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	apt install -y wget apt-transport-https software-properties-common
+	wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+	if [ $? -ne 0 ]; then return 1; fi
+	dpkg -i packages-microsoft-prod.deb
+	if [ $? -ne 0 ]; then return 1; fi
+	apt update
+	if [ $? -ne 0 ]; then return 1; fi
+	sudo apt install -y powershell
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+install_winscp() {
+	echo "winscp" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	wget -q -O WinSCP_portable.exe "https://cdn.winscp.net/files/WinSCP-6.3.4-Portable.zip?secure=hx8AyUXSE7bflXNSE5UbeQ==,1725135861"
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+install_7zip() {
+	echo "7zip" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	wget -q -O 7zip.exe "https://7-zip.org/a/7z2408-x64.exe"
+	if [ $? -ne 0 ]; then return 1; fi
+}
+
+
 #linux
 
 install_pspy() {
@@ -1004,6 +1080,18 @@ install_awscli() {
 	rm /opt/vikingos/logs/awscli.err
 }
 
+install_boto3() {
+    echo "boto3" >> /etc/vikingos/vikingos.config
+    LOG_FILE="/opt/vikingos/logs/boto3.err"
+
+    # Install boto3 using pip within the virtual environment
+    /usr/share/.pvenv/bin/pip3 install boto3 botocore requests python-dotenv aws-secretsmanager-caching Flask fastapi uvicorn pydantic|& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Clean up the log file upon successful installation
+    rm "$LOG_FILE"
+}
+
 install_googlecli() {
 	echo "googlecli" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/cloud
@@ -1083,6 +1171,61 @@ install_set() {
 	rm /opt/vikingos/logs/social-engineer-toolkit.err
 }
 
+install_evilginx2() {
+    echo "evilginx2" >> /etc/vikingos/vikingos.config
+    LOG_FILE="/opt/vikingos/logs/evilginx2.err"
+    TARGET_DIR="/opt/vikingos/phishing/evilginx2"
+
+    # Create the target directory
+    mkdir -p "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    cd "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Define URLs for the Windows and Linux releases
+    WINDOWS_URL="https://github.com/kgretzky/evilginx2/releases/download/v3.3.0/evilginx-v3.3.0-windows-64bit.zip"
+    LINUX_URL="https://github.com/kgretzky/evilginx2/releases/download/v3.3.0/evilginx-v3.3.0-linux-64bit.zip"
+
+    # Download the Windows release
+    wget -O "evilginx-v3.3.0-windows-64bit.zip" "$WINDOWS_URL" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Download the Linux release
+    wget -O "evilginx-v3.3.0-linux-64bit.zip" "$LINUX_URL" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Extract each zip file into its own directory
+    for zip_file in *.zip; do
+        dir_name="${zip_file%.zip}"
+        mkdir -p "$dir_name" |& tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then return 1; fi
+
+        unzip -o "$zip_file" -d "$dir_name" |& tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then return 1; fi
+    done
+
+    # Make the Linux binary executable
+    chmod +x "$TARGET_DIR/evilginx-v3.3.0-linux-64bit/evilginx" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Clone phishlet repositories
+    mkdir -p "$TARGET_DIR/phishlets" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    cd "$TARGET_DIR/phishlets" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    git clone https://github.com/An0nUD4Y/Evilginx2-Phishlets.git |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    git clone https://github.com/ArchonLabs/evilginx2-phishlets.git |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Clean up the log file upon successful completion
+    rm "$LOG_FILE"
+}
+
 #evasion
 
 install_donut() {
@@ -1095,6 +1238,27 @@ install_donut() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ln -s /opt/vikingos/evasion/donut/donut /usr/local/bin/donut
 	rm /opt/vikingos/logs/donut.err
+}
+
+install_FilelessPELoader() {
+	echo "FilelessPELoader" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/evasion
+	git clone https://github.com/SaadAhla/FilelessPELoader.git |& tee -a /opt/vikingos/logs/filelesspeloader.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	python3 -m venv /usr/share/.FilelessPELoader
+	/usr/share/.FilelessPELoader/bin/pip3 install pycryptodome pycryptodomex |& tee -a /opt/vikingos/logs/filelesspeloader.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	# Python launcher wrapper
+	echo '/usr/share/.FilelessPELoader/bin/python3 /opt/vikingos/evasion/FilelessPELoader/loader.py "$@"' > /usr/local/bin/filelesspeloader-python
+	chmod 555 /usr/local/bin/filelesspeloader-python
+
+	# Add compile reminder to README
+	echo "[*] modify c file to obfuscate it, then to compile, and name the file something not what it is :) :" > /opt/vikingos/evasion/FilelessPELoader/README.txt
+	echo "x86_64-w64-mingw32-gcc -o FilelessPELoader.exe FilelessPELoader.c" >> /opt/vikingos/evasion/FilelessPELoader/README.txt
+
+	rm /opt/vikingos/logs/filelesspeloader.err
 }
 
 install_scarecrow() {
@@ -1181,6 +1345,13 @@ install_chisel() {
 	rm /opt/vikingos/logs/chisel.err
 }
 
+install_uploadserver() {
+	echo "uploadserver" >> /etc/vikingos/vikingos.config
+	pip3 install uploadserver |& tee -a /opt/vikingos/logs/uploadserver.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/uploadserver.err
+	
+}
 install_ligolong()
 {
 	echo "ligolo-ng" >> /etc/vikingos/vikingos.config
@@ -1289,7 +1460,8 @@ install_sliver() {
 	if [ $? -ne 0 ]; then return 1; fi
 	cp /root/sliver-server /usr/local/bin/sliver-server
 	chmod +x /usr/local/bin/sliver-server
-	rm /opt/vikingos/logs/sliver.err
+    curl -s https://api.github.com/repos/BishopFox/sliver/releases/latest | grep browser_download_url | cut -d '"' -f 4 | xargs -n 1 curl -L -O  |& tee -a /opt/vikingos/logs/sliver.err
+    rm /opt/vikingos/logs/sliver.err
 }
 
 install_mythic() {
@@ -1532,6 +1704,7 @@ install_vscode() {
 	if [ $? -ne 0 ]; then return 1; fi
 	PATH=$PATH:/usr/sbin:/sbin dpkg -i * |& tee -a /opt/vikingos/logs/vscode.err
 	if [ $? -ne 0 ]; then return 1; fi
+
 	rm /opt/vikingos/logs/vscode.err
 }
 
@@ -1644,6 +1817,88 @@ install_cherrytree() {
 	rm /opt/vikingos/logs/cherrytree.err
 }
 
+install_mousetrap() {
+set -e
+
+# Install pynvim for Python 3 support in Neovim
+pip3 install --user --upgrade pynvim
+
+# Define directories
+VIM_DIR="$HOME/.vim"
+BUNDLE_DIR="$VIM_DIR/bundle"
+VUNDLE_DIR="$BUNDLE_DIR/Vundle.vim"
+NVIM_CONFIG_DIR="$HOME/.config/nvim"
+INIT_VIM="$NVIM_CONFIG_DIR/init.vim"
+
+# Create necessary directories
+mkdir -p "$BUNDLE_DIR"
+mkdir -p "$NVIM_CONFIG_DIR"
+
+# Install Vundle if not already installed
+if [ ! -d "$VUNDLE_DIR" ]; then
+  git clone https://github.com/VundleVim/Vundle.vim.git "$VUNDLE_DIR"
+fi
+
+# Create init.vim with plugin configurations
+cat > "$INIT_VIM" <<EOL
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
+" set the runtime path to include Vundle and initialize
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+
+" let Vundle manage Vundle, required
+Plugin 'VundleVim/Vundle.vim'
+
+" Mousetrap plugin
+Plugin 'CleverNamesTaken/Mousetrap'
+
+" UltiSnips for snippets
+Plugin 'SirVer/ultisnips'
+
+" vim-markdown for Markdown editing
+Plugin 'preservim/vim-markdown'
+
+call vundle#end()            " required
+filetype plugin indent on    " required
+
+" UltiSnips configuration
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<c-j>"
+let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+
+" vim-markdown configuration
+let g:vim_markdown_folding_disabled = 1
+let g:vim_markdown_conceal = 0
+let g:vim_markdown_frontmatter = 1
+EOL
+
+# Install plugins using Neovim
+nvim +PluginInstall +qall
+
+echo "Neovim setup complete with Vundle, Mousetrap, UltiSnips, and vim-markdown."
+
+}
+
+install_sysreptor() {
+	echo "sysreptor" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/notes
+	mkdir sysreptor
+	cd sysreptor
+
+	# Run official installer script
+	bash <(curl -s https://docs.sysreptor.com/install.sh) |& tee -a /opt/vikingos/logs/sysreptor.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	# Optional: Create symlink if SysReptor binary exists in a known location
+	if [[ -f /opt/sysreptor/sysreptor ]]; then
+		ln -s /opt/sysreptor/sysreptor /usr/local/bin/sysreptor
+	fi
+
+	rm /opt/vikingos/logs/sysreptor.err
+}
+
 install_obsidian() {
 	echo "obsidian" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/notes
@@ -1659,11 +1914,11 @@ install_obsidian() {
 install_latex() {
 	echo "latex" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/
-	curl -L -o install-tl-unx.tar.gz https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | &tee -a /opt/vikingos/logs/latex.err
-	zcat < install-tl-unx.tar.gz | tar xf - | &tee -a /opt/vikingos/logs/latex.err
+	curl -L -o install-tl-unx.tar.gz https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz |& tee -a /opt/vikingos/logs/latex.err
+	zcat < install-tl-unx.tar.gz | tar xf - |& tee -a /opt/vikingos/logs/latex.err
 	rm -f install-tl-unx.tar.gz
 	cd install-tl-*
-	perl ./install-tl --no-interaction | &tee -a /opt/vikingos/logs/latex.err
+	perl ./install-tl --no-interaction |& tee -a /opt/vikingos/logs/latex.err
 	latex_dir=`ls /usr/local/texlive/20*`
 	export PATH=$latex_dir/bin/x86_64-linux:$PATH
 	rm /opt/vikingos/logs/latex.err
@@ -1700,6 +1955,31 @@ install_macchanger() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/macchanger.err
 }
+
+install_hp_lights_out() {
+    echo "hp_lights_out" >> /etc/vikingos/vikingos.config
+    LOG_FILE="/opt/vikingos/logs/hp_lights_out.err"
+    TARGET_DIR="/opt/vikingos/windows/windows-uploads/"
+
+    # Create the target directory
+    mkdir -p "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    cd "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Download the HP Lights-Out Management package
+    curl -fL -o "SP50793.zip" "https://downloads.hpe.com/pub/softlib2/software1/pubsw-windows/p117886007/v64767/SP50793.zip" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Extract the ZIP file
+    unzip -o "SP50793.zip" -d "$TARGET_DIR" |& tee -a "$LOG_FILE"
+    if [ $? -ne 0 ]; then return 1; fi
+
+    # Clean up the log file upon successful completion
+    rm "$LOG_FILE"
+}
+
 
 install_jdgui() {
 	echo "jd-gui" >> /etc/vikingos/vikingos.config
@@ -1789,6 +2069,134 @@ install_tor() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/tor.err
 }
+
+install_vscode_extensions() {
+    echo "vscode-extensions" >> /etc/vikingos/vikingos.config
+
+    cd /opt/vikingos/coding || exit 1
+    mkdir -p code_extensions
+    cd code_extensions || exit 1
+
+    EXTENSIONS=(
+        "github.vscode-pull-request-github"
+        "gitlab.gitlab-workflow"
+        "ms-python.python"
+		"ms-python.debugpy"
+        "ms-python.vscode-pylance"
+        "ms-azuretools.vscode-docker"
+        "ms-kubernetes-tools.vscode-kubernetes-tools"
+        "hashicorp.terraform"
+        "redhat.vscode-yaml"
+        "ms-vscode-remote.remote-ssh"
+        "redhat.ansible"
+        "ms-vscode-remote.remote-containers"
+        "platformio.platformio-ide"
+        "ms-azuretools.vscode-bicep"
+        "ms-vscode.vscode-node-azure-pack"
+        "ms-azure-devops.azure-pipelines"
+        "ms-vscode.cpptools"
+        "ms-vscode.powershell"
+        "ms-vscode.cpptools-extension-pack"
+        "mongodb.mongodb-vscode"
+        "vscjava.vscode-java-pack"
+        "sonarsource.sonarlint-vscode"
+        "atlassian.atlascode"
+        "Oracle.oracle-java"
+        "vscodevim.vim"
+        "AmazonWebServices.aws-toolkit-vscode"
+		"bierner.markdown-mermaid"
+		"bierner.markdown-footnotes"
+		"DavidAnson.vscode-markdownlint"
+		"bierner.markdown-preview-github-styles"
+		"bierner.markdown-checkbox"
+		"ms-toolsai.datawrangler"
+		"ms-toolsai.jupyter"
+		"astral-sh.ruff"
+		"njpwerner.autodocstring"
+		"streetsidesoftware.code-spell-checker"
+		"humao.rest-client"
+		"redhat.java"
+		"esbenp.prettier-vscode"
+		"christian-kohler.npm-intellisense"
+		"vscjava.vscode-java-debug"
+		"ms-vscode.remote-explorer"
+		"ms-vscode-remote.remote-ssh-edit"
+		"golang.Go"
+		"ms-vscode.cmake-tools"
+		"ms-mssql.mssql"
+		"vscodevim.vim"
+    )
+
+    LOG_FILE="/opt/vikingos/logs/vscode_extensions.err"
+    mkdir -p /opt/vikingos/logs
+
+    for extension in "${EXTENSIONS[@]}"; do
+        echo "[+] Installing $extension"
+        code --install-extension "$extension" --no-sandbox |& tee -a "$LOG_FILE"
+        if [ $? -ne 0 ]; then
+            echo "[-] Failed to install $extension"
+            return 1
+        fi
+    done
+
+    echo "[+] Hardening VS Code telemetry settings for Ubuntu..."
+
+    VSCODE_SETTINGS_PATH="$HOME/.config/Code/User/settings.json"
+    mkdir -p "$(dirname "$VSCODE_SETTINGS_PATH")"
+
+    cat << 'EOF' > "$VSCODE_SETTINGS_PATH"
+{
+    "telemetry.telemetryLevel": "off",
+    "telemetry.enableTelemetry": false,
+    "telemetry.enableCrashReporter": false,
+    "rest-client.enableTelemetry": false,
+    "python.enableTelemetry": false,
+    "docker.enableTelemetry": false,
+    "vs-kubernetes.enableTelemetry": false,
+    "bicep.enableTelemetry": false,
+    "aws.enableTelemetry": false,
+    "sonarlint.disableTelemetry": true,
+    "remote.SSH.enableTelemetry": false,
+    "remote.containers.enableTelemetry": false,
+    "remote.WSL.enableTelemetry": false,
+    "extensions.ignoreRecommendations": true
+	"docker.lsp.telemetry": "off"
+	"redhat.telemetry.enabled": false
+}
+EOF
+
+    echo "[+] VS Code telemetry settings applied at: $VSCODE_SETTINGS_PATH"
+
+    rm -f "$LOG_FILE"
+}
+
+install_zsh() {
+	echo "zsh" >> /etc/vikingos/vikingos.config
+	apt-get install -y zsh |& tee -a /opt/vikingos/logs/zsh.err
+	if [ $? -ne 0 ]; then return 1; fi
+    sudo snap install zellij --classic
+    if [ $? -ne 0 ]; then return 1; fi
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended |& tee -a /opt/vikingos/logs/zsh.err
+	rm /opt/vikingos/logs/zsh.err
+}
+
+install_glab() {
+	echo "glab" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/coding
+	mkdir glab
+	cd glab
+
+	# Download latest .deb package
+	wget https://gitlab.com/api/v4/projects/25320657/packages/generic/glab/latest/glab_amd64.deb |& tee -a /opt/vikingos/logs/glab.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	apt install -y ./glab_amd64.deb |& tee -a /opt/vikingos/logs/glab.err
+	if [ $? -ne 0 ]; then return 1; fi
+
+	rm /opt/vikingos/logs/glab.err
+}
+
+
 choices=''
 if [ $# -eq 1 ]
   then
@@ -1804,6 +2212,7 @@ else
 		ncrack "" on
 		metasploit "" on
 		responder "" on
+        keystoreexplorer "" on
 		flamingo "" on
 		sqlmap "" on
 		mitm6 "" on
@@ -1817,6 +2226,7 @@ else
 		gobuster "" on
 		cewl "" on
 		cadaver "" on
+        firefoxtools "" on
 		web-check "" on
 		onesixtyone "" on
 		snmp "" on
@@ -1830,8 +2240,10 @@ else
 		gdbpeda "" on
 		jadx "" on
 		seclists "" on
+        hacktricks "" on
 		payloadallthethings "" on
 		rockyou "" on
+        kwprocessor "" on
 		crackstation-wordlists "" on
 		cyberchef "" on
 		crunch "" on
@@ -1860,6 +2272,9 @@ else
 		juicypotato "" on
 		printspoofer "" on
 		roguepotato "" on
+		powershell "" on
+        winscp "" on
+        7zip "" on
 		pspy "" on
 		sshsnake "" on
 		reptile "" on
@@ -1869,21 +2284,25 @@ else
 		pacu "" on
 		enumerate-iam "" on
 		awscli "" on
+        aws_boto3 "" on
 		azurecli "" on
 		googlecli "" on
 		trufflehog "" on
 		social-engineer-toolkit "" on
+        evilginx2 "" on
 		donut "" on
+        FilelessPELoader "" on
 		scarecrow "" on
 		ebowla "" on
+        uploadserver "" on
 		chisel "" on
 		ligolo-ng "" on
 		sliver "" on
-		mythic "" on
-		merlin "" on
-		villain "" on
-		havoc "" on
-		poshc2 "" on
+		mythic "" off
+		merlin "" off
+		villain "" off
+		havoc "" off
+		poshc2 "" off
 		peass-ng "" on
 		okteta "" on
 		bless "" on
@@ -1902,18 +2321,23 @@ else
 		clang "" on
 		mingw-w64 "" on
 		nim "" on
-		ghostwriter "" on
+        vscode_extensions "" off
+		ghostwriter "" off
 		cherrytree "" on
+        mousetrap "" on
+        sysreptor "" on
 		obsidian "" on
-		latex "" on
+		latex "" off
 		drawio "" on
 		macchanger "" on
+        hp_lights_out "" on
 		jd-gui "" on
 		theHarvester "" on
 		keepassxc "" on
 		veracrypt "" on
 		bitwarden "" on
 		tor "" off
+        zsh "" on
 		nfs-server "" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	clear
@@ -1933,6 +2357,10 @@ apt-get install -y build-essential
 apt-get install -y libssl-dev
 apt-get install -y libssh-dev 
 apt-get install -y automake
+apt-get install -y gdb
+apt-get install -y nodejs 
+apt-get install -y node
+apt-get install -y npm
 apt-get install -y postgresql-client
 apt-get install -y sqlite3 sqlite3-tools
 apt-get install -y sqlitebrowser
@@ -1954,6 +2382,80 @@ apt-get install -y iptables-persistent
 apt-get install -y krb5-config krb5-user
 apt-get install -y freerdp2-x11
 apt-get install -y libffi-dev
+apt-get install -y screen
+apt-get install -y tmux
+apt-get install -y terminator
+apt-get install -y net-tools
+apt-get install -y xfburn
+apt-get install -y ipmitool
+apt-get install -y open-vm-tools
+apt-get install -y libreoffice
+apt-get install -y gimp
+apt-get install -y vlc
+apt-get install -y klogg
+apt-get install -y softhsm2
+apt-get install -y opensc
+apt-get install -y filezilla
+apt-get install -y samba
+apt-get install -y telnet
+apt-get install -y minicom
+apt-get install -y yubikey-manager
+apt-get install -y yubikey-luks
+apt-get install -y yubikey-piv-tool
+apt-get install -y yubikey-personalization
+apt-get install -y yubikey-personalization-gui
+apt-get install -y yubikey-manager-qt
+apt-get install -y yubioath-desktop
+apt-get install -y gnupg2
+apt-get install -y pcscd
+apt-get install -y scdaemon
+apt-get install -y pcscd
+apt-get install -y pcsc-tools
+apt-get install -y scdaemon 
+apt-get install -y gnupg2
+apt-get install -y kleopatra
+apt-get install -y scdaemon 
+apt-get install -y p7zip-full
+apt-get install -y net-tools
+apt-get install -y neovim
+pip3 install --user --upgrade pynvim
+apt-get install -y sed
+apt-get install -y uuid-runtime
+apt-get install -y coreutils
+apt-get install -y socat
+apt-get install -y minicom 
+apt-get install -y fzf
+apt-get install -y bat
+apt-get install -y ripgrep
+sudo snap install dbeaver-ce
+
+
+
+
+# Install Jira CLI tools
+echo "Installing Jira CLI tools..."
+npm install -g jira-cli
+
+# Install Confluence CLI tools
+echo "Installing Confluence CLI tools..."
+npm install -g confluence-cli
+
+# Install Bitbucket CLI tools
+echo "Installing Bitbucket CLI tools..."
+npm install -g bitbucket-cli
+
+echo "Installing AWS SDK npm"
+npm install -g aws-sdk
+
+
+echo "Atlassian CLI tools installation complete."
+echo "Development environment setup complete."
+
+
+
+
+
+
 
 if [[ $OS == *"ubuntu"* ]]; then
 	apt-get install -y 7zip
@@ -2055,6 +2557,9 @@ do
 		responder)
 			install_responder
 			;;
+        keystoreexplorer)
+            install_keystoreexplorer
+            ;;
 		flamingo)
 			install_flamingo
 			;;
@@ -2094,6 +2599,9 @@ do
 		cadaver)
 			install_cadaver
 			;;
+        firefoxtools)
+            install_firefoxtools
+            ;;
 		web-check)
 			install_webcheck
 			;;
@@ -2132,6 +2640,9 @@ do
 			;;
 		seclists)
 			install_seclists
+            ;;
+        hacktricks)
+            install_hacktricks
 			;;
 		payloadallthethings)
 			install_payloadallthethings
@@ -2139,6 +2650,9 @@ do
 		rockyou)
 			install_rockyou
 			;;
+        kwprocessor)
+            install_kwprocessor
+            ;;
 		crackstation-wordlists)
 			install_crackstationwordlists
 			;;
@@ -2223,6 +2737,15 @@ do
 		roguepotato)
 			install_roguepotato
 			;;
+		powershell)
+			install_powershell
+			;;
+        winscp)
+            install_winscp
+            ;;
+        7zip)
+            install_7zip
+            ;;
 		pspy)
 			install_pspy
 			;;
@@ -2250,6 +2773,9 @@ do
 		awscli)
 			install_awscli
 			;;
+        aws_boto3)
+            install_boto3
+            ;;
 		azurecli)
 			install_azurecli
 			;;
@@ -2262,15 +2788,24 @@ do
 		social-engineer-toolkit)
 			install_set
 			;;
+        evilginx2)
+            install_evilginx2
+            ;;
 		donut)
 			install_donut
 			;;
+        FilelessPELoader)
+            install_FilelessPELoader
+            ;;
 		scarecrow)
 			install_scarecrow
 			;;
 		ebowla)
 			install_ebowla
 			;;
+        uploadserver)
+            install_uploadserver
+            ;;
 		chisel)
 			install_chisel
 			;;
@@ -2346,6 +2881,9 @@ do
 		mingw-w64)
 			install_mingw
 			;;
+        vscode_extensions_NOT_OPSEC_SAFE)
+            install_vscode_extensions
+            ;;
 		nim)
 			install_nim
 			;;
@@ -2354,6 +2892,12 @@ do
 			;;
 		cherrytree)
 			install_cherrytree
+            ;;
+        mousetrap)
+            install_mousetrap
+            ;;
+        sysreptor)
+            install_sysreptor
 			;;
 		obsidian)
 			install_obsidian
@@ -2367,6 +2911,9 @@ do
 		macchanger)
 			install_macchanger
 			;;
+        hp_lights_out)
+            install_hp_lights_out
+            ;;
 		jd-gui)
 			install_jdgui
 			;;
@@ -2385,6 +2932,12 @@ do
 		tor)
 			install_tor
 			;;
+        zsh)
+            install_zsh
+            ;;
+        glab) 
+            install_glab
+            ;;
 		nfs-server)
 			install_nfsserver
 			;;
@@ -2393,9 +2946,12 @@ done
 
 echo -ne "Thank you for using vikingos! Some tips:\n\n"
 echo -ne "\tFor future builds, you can use /etc/vikingos/vikingos.config to build this same config. Just do ./vikingos.sh vikingos.config!\n\n"
+echo -ne "\tFor sliver, make sure you start the service/server then run "armory install all" on the sliver-client and sliver-server to get all the extensions"
 echo -ne "\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\t"
 echo -ne "\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n"
+echno -ne "\tIf you install firefoxtools, you need to go to /opt/vikingos/web/firefoxtools and install the extensions manually"
 echo -ne "\tResources for the os are located at /usr/share/vikingos-resources\n\n"
+echo -ne "\tDev extensions for VS Code install script will need to be run as a normal user in the coding folder"
 echo -ne "\tFor cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this,  they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
 if [ -z "$(ls -A /opt/vikingos/logs)" ]; then
 	echo "All Packages installed!"
