@@ -49,12 +49,14 @@ DNS:
 
 Forensics:
    - sleuthkit
+   - autopsy
    - volatility
    - binwalk
    - ghidra
    - radare2
    - gdbpeda
    - jadx
+   - frida
 
 Resources:
    - seclists
@@ -239,6 +241,7 @@ Notes:
    - cherrytree
    - drawio
    - obsidian
+   - trilium
    - sysreptor
 
 Net:
@@ -255,6 +258,10 @@ Encryption/Password Managers:
    - veracrypt
    - keepass
    - bitwarden
+
+Wireless:
+   - aircrack-ng
+   - kismet
 
 From apt repos:
    - smbclient
@@ -320,9 +327,10 @@ Docker:
    - docker
 
 
-Docker, ruby, go and all the tools from the apt repos are automatically installed. The rest of the tools can be either select or not select for install when the script is run. 
+Docker, ruby, go, rust and all the tools from the apt repos are automatically installed. The rest of the tools can be either select or not select for install when the script is run. 
 
 # Requirements
 Debian 12 (or newer)\ 
 Ubuntu 22.04 (or newer)\
-~80 GB of free space on drive after OS install
+Ubuntu or Debian Variant\
+~140 GB of free space on drive after OS install

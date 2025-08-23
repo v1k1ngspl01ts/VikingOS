@@ -8,16 +8,43 @@ fi
 #for logging and error checking
 set -o pipefail
 
-OS=`cat /etc/*release | grep "^ID="`
-VERSION_ID=`cat /etc/*release | grep "^VERSION_ID="`
 
+#setting codenames and versions
+declare -A ubuntu_lookup_table
+ubuntu_lookup_table["focal"]="20.04"
+ubuntu_lookup_table["jammy"]="22.04"
+ubuntu_lookup_table["noble"]="24.04"
+
+declare -A debian_lookup_table
+debian_lookup_table["buster"]="10"
+debian_lookup_table["bullseye"]="11"
+debian_lookup_table["bookworm"]="12"
+debian_lookup_table["trixie"]="13"
+
+OS=`cat /etc/*release | grep "^ID="`
+export VERSION_ID=`cat /etc/*release | grep "^VERSION_ID=" | cut -f 2 -d '"'`
+export MAIN_CODENAME=""
 if [[ $OS == *"debian"* ]]; then
 	echo "Debian"
+	export MAIN_CODENAME=`lsb_release -cs`
 elif [[ $OS == *"ubuntu"* ]]; then
 	echo "Ubuntu"
+	export MAIN_CODENAME=`lsb_release -cs`
 else
-	echo "OS is not Debian or Ubuntu! Exiting!"
-	exit
+	OS=`cat /etc/*release | grep "^ID_LIKE=" | cut -f 2 -d '"' | cut -f 1 -d " "`
+	if [[ $OS == *"ubuntu"* ]]; then
+		export MAIN_CODENAME=`cat /etc/*release | grep "^UBUNTU_CODENAME=" | cut -f 2 -d "="`
+		export VERSION_ID=${ubuntu_lookup_table["$MAIN_CODENAME"]}
+	elif [[ $OS == *"debian"* ]]; then
+		export MAIN_CODENAME=`cat /etc/*release | grep "^DEBIAN_CODENAME=" | cut -f 2 -d "="`
+		export VERSION_ID=${ubuntu_lookup_table["$MAIN_CODENAME"]}
+	else
+		echo "Could not resolve OS identity. Please Enter Manually:"
+		read -p "OS(ubuntu/debian): " OS
+		read -p "Version(22.04/20.04/10/11): " VERSION_ID
+		read -p "Codename for ubuntu or debian (first one like jammy,noble,ect): " MAIN_CODENAME
+	fi
+	
 fi
 
 #if [[ -z "$VIKINGOS_LOG" ]]; then
@@ -38,9 +65,12 @@ apt-get install -y dialog
 
 IMPACKET_INSTALLED=0
 
+remove_tool_from_continuation_file () {
+	cat /tmp/vikingos.continue | sed -e "s/$1 //" > /tmp/vikingos.tmp
+	mv /tmp/vikingos.tmp /tmp/vikingos.continue
+}
 
 #scanning
-
 install_nmap() {
 	echo "nmap" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/scanning
@@ -54,6 +84,7 @@ install_nmap() {
 	make install |& tee -a /opt/vikingos/logs/nmap.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/nmap.err
+	remove_tool_from_continuation_file "nmap"
 }
 
 install_masscan() {
@@ -67,6 +98,7 @@ install_masscan() {
 	make install |& tee -a /opt/vikingos/logs/masscan.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/masscan.err
+	remove_tool_from_continuation_file "masscan"
 }
 
 install_nbtscan() {
@@ -84,6 +116,7 @@ install_nbtscan() {
 	make install |& tee -a /opt/vikingos/logs/nbtscan.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/nbtscan.err
+	remove_tool_from_continuation_file "nbtscan"
 }
 
 
@@ -99,6 +132,7 @@ install_netexec() {
 	ln -s /opt/vikingos/bruteforce/netexec/nxc /usr/local/bin/nxc
 	ln -s /opt/vikingos/bruteforce/netexec/nxc /usr/local/bin/netexec
 	rm /opt/vikingos/logs/netexec.err
+	remove_tool_from_continuation_file "netexec"
 }
 
 install_medusa() {
@@ -107,6 +141,8 @@ install_medusa() {
 	git clone https://github.com/jmk-foofus/medusa.git |& tee -a /opt/vikingos/logs/medusa.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd medusa
+	autoreconf -f -i |& tee -a /opt/vikingos/logs/medusa.err
+	if [ $? -ne 0 ]; then return 1; fi
 	./configure |& tee -a /opt/vikingos/logs/medusa.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make |& tee -a /opt/vikingos/logs/medusa.err
@@ -114,6 +150,7 @@ install_medusa() {
 	make install |& tee -a /opt/vikingos/logs/medusa.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/medusa.err
+	remove_tool_from_continuation_file "medusa"
 }
 
 install_hydra() {
@@ -137,6 +174,7 @@ install_hydra() {
 	make install |& tee -a /opt/vikingos/logs/hydra.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/hydra.err
+	remove_tool_from_continuation_file "hydra"
 }
 
 install_ncrack() {
@@ -153,6 +191,7 @@ install_ncrack() {
 	make install |& tee -a /opt/vikingos/logs/ncrack.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/ncrack.err
+	remove_tool_from_continuation_file "ncrack"
 }
 
 #exploit
@@ -165,6 +204,7 @@ install_metasploit() {
 	curl https://raw.githubusercontent.com/rapid7/metasploit-omnibus/master/config/templates/metasploit-framework-wrappers/msfupdate.erb > msfinstall && chmod 755 msfinstall && ./msfinstall |& tee -a /opt/vikingos/logs/metasploit.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/metasploit.err
+	remove_tool_from_continuation_file "metasploit"
 }
 
 install_responder() {
@@ -173,22 +213,24 @@ install_responder() {
 	git clone https://github.com/lgandx/Responder |& tee -a /opt/vikingos/logs/responder.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd Responder
-	/usr/share/.pvenv/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/responder.err
+	/opt/vikingos/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/responder.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/responder.err
-	echo '/usr/share/.pvenv/bin/python3 /opt/vikingos/exploit/Responder/Responder.py "$@"' > /usr/local/bin/responder && chmod 555 /usr/local/bin/responder
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/exploit/Responder/Responder.py "$@"' > /usr/local/bin/responder && chmod 555 /usr/local/bin/responder
+	remove_tool_from_continuation_file "responder"
 }
 
 install_keystoreexplorer() {
 	echo "keystoreexplorer" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/exploit
 	mkdir keystore_explorer
-	keystore_explorer_link=`curl -s https://api.github.com/repos/kaikramer/keystore-explorer/releases/latest | grep browser_download_url | grep ".deb" | cut -d '"' -f 4 | xargs -n 1 curl -L -O`
+	keystore_explorer_link=`curl -s https://api.github.com/repos/kaikramer/keystore-explorer/releases/latest | grep browser_download_url | grep ".deb" | cut -d '"' -f 4`
 	curl -L -O -J $keystore_explorer_link |& tee -a /opt/vikingos/logs/keystoreexplorer.err
 	if [ $? -ne 0 ]; then return 1; fi
 	dpkg -i *.deb |& tee -a /opt/vikingos/logs/keystoreexplorer.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/keystoreexplorer.err
+	remove_tool_from_continuation_file "keystoreexplorer"
 }
 
 install_flamingo() {
@@ -201,6 +243,7 @@ install_flamingo() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/flamingo.err
 	ln -s /opt/vikingos/exploit/flamingo/flamingo /usr/local/bin/flamingo
+	remove_tool_from_continuation_file "flamingo"
 }
 
 #sql
@@ -213,6 +256,7 @@ install_sqlmap() {
 	cd sqlmap
 	echo 'python3 /opt/vikingos/sql/sqlmap/sqlmap.py "$@"' > /usr/local/bin/sqlmap && chmod 555 /usr/local/bin/sqlmap
 	rm /opt/vikingos/logs/sqlmap.err
+	remove_tool_from_continuation_file "sqlmap"
 }
 
 #relay
@@ -226,6 +270,7 @@ install_mitm6() {
 	if [ $? -ne 0 ]; then return 1; fi
 	echo 'python3 /opt/vikingos/relay/mitm6/mitm6/mitm6.py "$@"' > /usr/local/bin/mitm6 && chmod 555 /usr/local/bin/mitm6
 	rm /opt/vikingos/logs/mitm6.err
+	remove_tool_from_continuation_file "mitm6"
 }
 
 install_bettercap() {
@@ -243,6 +288,7 @@ install_bettercap() {
 	bettercap -eval "caplets.update; ui.update; q" |& tee -a /opt/vikingos/logs/bettercap.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/bettercap.err
+	remove_tool_from_continuation_file "bettercap"
 }
 
 install_ettercap() {
@@ -259,6 +305,7 @@ install_ettercap() {
 	make install |& tee -a /opt/vikingos/logs/ettercap.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/ettercap.err
+	remove_tool_from_continuation_file "ettercap"
 }
 
 #web
@@ -275,6 +322,7 @@ install_burpsuite() {
 	./install_burpsuite.sh |& tee -a /opt/vikingos/logs/burpsuite.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/burpsuite.err
+	remove_tool_from_continuation_file "burpsuite"
 }
 
 install_zap() {
@@ -289,6 +337,7 @@ install_zap() {
 	./zap.sh |& tee -a /opt/vikingos/logs/zap.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/zap.err
+	remove_tool_from_continuation_file "zap"
 }
 
 install_nikto() {
@@ -298,6 +347,7 @@ install_nikto() {
 	if [ $? -ne 0 ]; then return 1; fi
 	echo 'perl /opt/vikingos/web/nikto/program/nikto.pl "$@"' > /usr/local/bin/nikto && chmod 555 /usr/local/bin/nikto
 	rm /opt/vikingos/logs/nikto.err
+	remove_tool_from_continuation_file "nikto"
 }
 
 install_wpscan() {
@@ -309,6 +359,7 @@ install_wpscan() {
 	gem install wpscan |& tee -a /opt/vikingos/logs/wpscan.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/wpscan.err
+	remove_tool_from_continuation_file "wpscan"
 }
 
 install_feroxbuster() {
@@ -319,6 +370,7 @@ install_feroxbuster() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/feroxbuster.err
 	ln -s /opt/vikingos/web/feroxbuster/feroxbuster /usr/local/bin/feroxbuster
+	remove_tool_from_continuation_file "feroxbuster"
 }
 
 install_gobuster() {
@@ -333,6 +385,7 @@ install_gobuster() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/gobuster.err
 	ln -s /opt/vikingos/web/gobuster/gobuster /usr/local/bin/gobuster
+	remove_tool_from_continuation_file "gobuster"
 }
 
 install_cewl() {
@@ -347,6 +400,7 @@ install_cewl() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/cewl.err
 	echo 'ruby /opt/vikingos/web/CeWL/cewl.rb "$@"' > /usr/local/bin/cewl && chmod 555 /usr/local/bin/cewl
+	remove_tool_from_continuation_file "cewl"
 }
 
 install_cadaver() {
@@ -365,6 +419,7 @@ install_cadaver() {
 	make install |& tee -a /opt/vikingos/logs/cadaver.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/cadaver.err
+	remove_tool_from_continuation_file "cadaver"
 }
 
 install_webcheck() {
@@ -386,6 +441,7 @@ install_webcheck() {
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/webcheck.err
 	echo 'if [ "$EUID" -ne 0 ]; then echo "Please run as root by either using sudo su or su root" && exit; fi; export NVM_DIR="$HOME/.nvm" && [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && cd /opt/vikingos/web/web-check && yarn serve' > /usr/local/bin/web-check && chmod 555 /usr/local/bin/web-check
+	remove_tool_from_continuation_file "web-check"
 }
 
 install_firefoxtools() {
@@ -399,6 +455,8 @@ install_firefoxtools() {
     wget -O trufflehog.xpi "https://addons.mozilla.org/firefox/downloads/file/4035826/trufflehog-0.0.1.xpi" |& tee -a /opt/vikingos/logs/firefoxtools.err
     if [ $? -ne 0 ]; then return 1; fi
   	rm /opt/vikingos/logs/firefoxtools.err
+	remove_tool_from_continuation_file "firefoxtools"
+}
 
 
 #snmp
@@ -414,6 +472,7 @@ install_onesixtyone() {
 	make install |& tee -a /opt/vikingos/logs/onesixtyone.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	rm /opt/vikingos/logs/onesixtyone.err
+	remove_tool_from_continuation_file "onesixtyone"
 }
 
 install_snmp() {
@@ -421,6 +480,7 @@ install_snmp() {
 	apt-get install -y snmp |& tee -a /opt/vikingos/logs/snmp.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	rm /opt/vikingos/logs/snmp.err
+	remove_tool_from_continuation_file "snmp"
 }
 
 #dns
@@ -431,10 +491,11 @@ install_dnsrecon() {
 	git clone https://github.com/darkoperator/dnsrecon |& tee -a /opt/vikingos/logs/dnsrecon.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	cd dnsrecon
-	/usr/share/.pvenv/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/dnsrecon.err
+	uv sync | tee -a /opt/vikingos/logs/dnsrecon.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	rm /opt/vikingos/logs/dnsrecon.err
-	echo '/usr/share/.pvenv/bin/python3 /opt/vikingos/dns/dnsrecon/dnsrecon.py "$@"' > /usr/local/bin/dnsrecon && chmod 555 /usr/local/bin/dnsrecon
+	echo 'uv run /opt/vikingos/dns/dnsrecon/dnsrecon.py "$@"' > /usr/local/bin/dnsrecon && chmod 555 /usr/local/bin/dnsrecon
+	remove_tool_from_continuation_file "dnsrecon"
 }
 
 install_dnsenum() {
@@ -449,6 +510,7 @@ install_dnsenum() {
 	make install |& tee -a /opt/vikingos/logs/dnsenum.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	rm /opt/vikingos/logs/dnsenum.err
+	remove_tool_from_continuation_file "dnsenum"
 }
 
 #forensics
@@ -468,6 +530,15 @@ install_sleuthkit() {
 	make install |& tee -a /opt/vikingos/logs/sleuthkit.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	rm /opt/vikingos/logs/sleuthkit.err
+	remove_tool_from_continuation_file "sleuthkit"
+}
+
+install_autopsy() {
+	echo "autopsy" >> /etc/vikingos/vikingos.config
+	snap install autopsy |& tee -a /opt/vikingos/logs/autopsy.err
+	if [ $? -ne 0 ]; then return 1; fi  
+	rm /opt/vikingos/logs/autopsy.err
+	remove_tool_from_continuation_file "autopsy"
 }
 
 install_volatility() {
@@ -476,16 +547,12 @@ install_volatility() {
 	git clone https://github.com/volatilityfoundation/volatility3 |& tee -a /opt/vikingos/logs/volatility.err
 	if [ $? -ne 0 ]; then return 1; fi  
 	cd volatility3
-	python3 -m venv /usr/share/.volatility
-	/usr/share/.volatility/bin/pip3 install setuptools
-	/usr/share/.volatility/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/volatility.err
+	python3 -m venv /opt/vikingos/forensics/volatility3/python_env
+	/opt/vikingos/forensics/volatility3/python_env/bin/pip3 install -e ".[full]" |& tee -a /opt/vikingos/logs/volatility.err
 	if [ $? -ne 0 ]; then return 1; fi  
-	/usr/share/.volatility/bin/python3 setup.py build |& tee -a /opt/vikingos/logs/volatility.err
-	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.volatility/bin/python3 setup.py install |& tee -a /opt/vikingos/logs/volatility.err
-	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.volatility/bin/python3 /opt/vikingos/forensics/volatility3/vol.py "$@"' > /usr/local/bin/volatility && chmod 555 /usr/local/bin/volatility
+	echo '/opt/vikingos/forensics/volatility3/python_env/bin/python3 /opt/vikingos/forensics/volatility3/vol.py "$@"' > /usr/local/bin/volatility && chmod 555 /usr/local/bin/volatility
 	rm /opt/vikingos/logs/volatility.err
+	remove_tool_from_continuation_file "volatility"
 }
 
 install_binwalk() {
@@ -494,11 +561,13 @@ install_binwalk() {
 	git clone https://github.com/ReFirmLabs/binwalk |& tee -a /opt/vikingos/logs/binwalk.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	cd binwalk
-	#python3.12 removed imp, replacement for it
-	apt-get install -y python3-zombie-imp 
-	python3 setup.py install |& tee -a /opt/vikingos/logs/binwalk.err
+	./dependencies/ubuntu.sh |& tee -a /opt/vikingos/logs/binwalk.err
 	if [ $? -ne 0 ]; then return 1; fi  
+	cargo build --release |& tee -a /opt/vikingos/logs/binwalk.err
+	if [ $? -ne 0 ]; then return 1; fi  
+	ln -s /opt/vikingos/forensics/binwalk/target/release/binwalk /usr/local/bin/binwalk
 	rm /opt/vikingos/logs/binwalk.err
+	remove_tool_from_continuation_file "binwalk"
 }
 
 install_ghidra() {
@@ -512,6 +581,7 @@ install_ghidra() {
 	ghidra_dir=`find /opt/vikingos/forensics -name *ghidra*`
 	ln -s $ghidra_dir/ghidraRun /usr/local/bin/ghidra
 	rm /opt/vikingos/logs/ghidra.err
+	remove_tool_from_continuation_file "ghidra"
 }
 
 install_radare2() {
@@ -525,15 +595,17 @@ install_radare2() {
 	dpkg -i * |& tee -a /opt/vikingos/logs/radare2.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/radare2.err
+	remove_tool_from_continuation_file "radare2"
 }
 
 install_gdbpeda() {
-	echo "peda" >> /etc/vikingos/vikingos.config
+	echo "gdbpeda" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/forensics
 	git clone https://github.com/longld/peda |& tee -a /opt/vikingos/logs/gdbpeda.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	echo "source /opt/vikingos/forensics/peda/peda.py" >> /etc/gdb/gdbinit
 	rm /opt/vikingos/logs/gdbpeda.err
+	remove_tool_from_continuation_file "gdbpeda"
 }
 
 install_jadx() {
@@ -547,8 +619,39 @@ install_jadx() {
 	ln -s /opt/vikingos/forensics/jadx/build/jadx/bin/jadx /usr/local/bin/jadx
 	ln -s /opt/vikingos/forensics/jadx/build/jadx/bin/jadx-gui /usr/local/bin/jadx-gui
 	rm /opt/vikingos/logs/jadx.err
+	remove_tool_from_continuation_file "jadx"
 }
 
+install_frida() {
+	echo "frida" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/forensics
+	mkdir frida
+	cd frida
+	mkdir python_env
+	python3 -m venv python_env
+	cd python_env/bin
+	./pip3 install frida-tools |& tee -a /opt/vikingos/logs/frida.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	ls frida* | xargs -I {} ln -s /opt/vikingos/forensics/frida/python_env/bin/{} /usr/local/bin/{}
+	cd ../..
+	mkdir gadgets
+	cd gadgets
+	curl -s https://api.github.com/repos/frida/frida/releases/latest | grep browser_download | grep gadget | cut -d '"' -f 4 | xargs wget |& tee -a /opt/vikingos/logs/frida.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd ..
+	mkdir servers
+	cd servers
+	curl -s https://api.github.com/repos/frida/frida/releases/latest | grep browser_download | grep server | cut -d '"' -f 4 | xargs wget |& tee -a /opt/vikingos/logs/frida.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd ..
+	mkdir inject
+	cd inject
+	curl -s https://api.github.com/repos/frida/frida/releases/latest | grep browser_download | grep inject | cut -d '"' -f 4 | xargs wget |& tee -a /opt/vikingos/logs/frida.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo -e '#!/bin/bash\necho "Gadgets: /opt/vikingos/forensics/frida/gadgets"\necho "Servers: /opt/vikingos/forensics/frida/servers" \necho "Injects: /opt/vikingos/forensics/frida/injects"' > /usr/local/bin/frida-upload-directories && chmod 555  /usr/local/bin/frida-upload-directories
+	rm /opt/vikingos/logs/frida.err
+	remove_tool_from_continuation_file "frida"
+}
 #resources
 
 install_seclists() {
@@ -558,6 +661,7 @@ install_seclists() {
 	if [ $? -ne 0 ]; then return 1; fi 
 	ln -s /opt/vikingos/resources/SecLists/Web-Shells /usr/share/vikingos-resources/webshells
 	rm /opt/vikingos/logs/seclists.err
+	remove_tool_from_continuation_file "seclists"
 }
 
 install_hacktricks() {
@@ -565,7 +669,22 @@ install_hacktricks() {
 	cd /opt/vikingos/resources
 	git clone https://github.com/HackTricks-wiki/hacktricks |& tee -a /opt/vikingos/logs/hacktricks.err
 	if [ $? -ne 0 ]; then return 1; fi 
+	echo -e '#!/bin/bash\ncd /opt/vikingos/resources/hacktricks\nmdbook build\nmdbook serve\n' > /usr/local/bin/hacktricks && chmod 555 /usr/local/bin/hacktricks
 	rm /opt/vikingos/logs/hacktricks.err
+	remove_tool_from_continuation_file "hacktricks"
+}
+
+install_mdbook() {
+	cd /opt/vikingos/resources
+	mkdir mdbook
+	cd mdbook
+	MDBOOK_URL=`curl -s https://api.github.com/repos/rust-lang/mdBook/releases/latest | grep "browser_download_url" | grep musl | grep x86 | cut -f 4 -d '"'`
+	curl -L -J -o mdbook.tar.gz $MDBOOK_URL |& tee -a /opt/vikingos/logs/mdbook.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	gunzip mdbook.tar.gz
+	tar xf mdbook.tar
+	ln -s /opt/vikingos/resources/mdbook/mdbook /usr/local/bin/mdbook
+	rm /opt/vikingos/logs/mdbook.err
 }
 
 install_payloadallthethings() {
@@ -574,6 +693,7 @@ install_payloadallthethings() {
 	git clone https://github.com/swisskyrepo/PayloadsAllTheThings |& tee -a /opt/vikingos/logs/payloadallthethings.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/payloadallthethings.err
+	remove_tool_from_continuation_file "payloadallthethings"
 }
 
 install_rockyou() {
@@ -582,21 +702,22 @@ install_rockyou() {
 	curl -L -O -J https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt |& tee -a /opt/vikingos/logs/rockyou.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/rockyou.err
+	remove_tool_from_continuation_file "rockyou"
 }
 
 install_kwprocessor() {
-	echo "kwprocessor(" >> /etc/vikingos/vikingos.config
+	echo "kwprocessor" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/password-cracking
     mkdir keyboardwalk_generator
     cd keyboardwalk_generator
-	kwprocessor_download=`curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url" | cut -d '"' -f 4 | wget -i -`
-	curl -L -O -J $kwprocessor |& tee -a /opt/vikingos/logs/kwprocessor.err
+	kwprocessor_download=`curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url" | cut -d '"' -f 4`
+	curl -L -O -J $kwprocessor_download |& tee -a /opt/vikingos/logs/kwprocessor.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	7z x kwprocessor-1.00.7z
     if [ $? -ne 0 ]; then return 1; fi 
-    curl -s https://api.github.com/repos/hashcat/kwprocessor/releases/latest | grep "browser_download_url.*tar.gz" | cut -d '"' -f 4 | wget -i - 
-    if [ $? -ne 0 ]; then return 1; fi 
+    ln -s /opt/vikingos/password-cracking/keyboardwalk_generator/kwprocessor/kwp /usr/local/bin/kwp
 	rm /opt/vikingos/logs/kwprocessor.err
+	remove_tool_from_continuation_file "kwprocessor"
 }
 
 install_crackstationwordlists() {
@@ -610,6 +731,7 @@ install_crackstationwordlists() {
 	if [ $? -ne 0 ]; then return 1; fi 
 	gunzip crackstation-human-only.txt.gz
 	rm /opt/vikingos/logs/crackstation-wordlists.err
+	remove_tool_from_continuation_file "crackstation-wordlists"
 }
 
 install_cyberchef() {
@@ -620,6 +742,7 @@ install_cyberchef() {
 	unzip -d cyberchef CyberChef*.zip
 	rm -f CyberChef*.zip
 	rm /opt/vikingos/logs/cyberchef.err
+	remove_tool_from_continuation_file "cyberchef"
 }
 
 #crunch
@@ -628,6 +751,7 @@ install_crunch() {
 	apt-get install -y crunch |& tee -a /opt/vikingos/logs/crunch.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/crunch.err
+	remove_tool_from_continuation_file "crunch"
 }
 
 #password cracking
@@ -656,6 +780,7 @@ install_johntheripper() {
 	echo '/opt/vikingos/password-cracking/john/run/john "$@"' > /usr/local/bin/john && chmod 555 /usr/local/bin/john
 	ls /opt/vikingos/password-cracking/john/run | egrep -v "\." | grep "2john" | xargs -I {} ln -s /opt/vikingos/password-cracking/john/run/{} /usr/local/bin/{}
 	rm /opt/vikingos/logs/johntheripper.err
+	remove_tool_from_continuation_file "john-the-ripper"
 }
 
 install_hashcat() {
@@ -676,6 +801,7 @@ install_hashcat() {
 	make install |& tee -a /opt/vikingos/logs/hashcat.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/hashcat.err
+	remove_tool_from_continuation_file "hashcat"
 }
 
 install_hashcatrules() {
@@ -688,6 +814,7 @@ install_hashcatrules() {
 	if [ $? -ne 0 ]; then return 1; fi 
 	cp -r /opt/vikingos/password-cracking/hashcat/rules/* .
 	rm /opt/vikingos/logs/hashcat-rules.err
+	remove_tool_from_continuation_file "hashcat-rules"
 }
 
 #windows
@@ -698,13 +825,14 @@ install_impacket() {
 	git clone https://github.com/fortra/impacket |& tee -a /opt/vikingos/logs/impacket.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	cd impacket
-	/usr/share/.pvenv/bin/pip3 install dsinternals |& tee -a /opt/vikingos/logs/impacket.err
+	/opt/vikingos/python_env/bin/pip3 install dsinternals |& tee -a /opt/vikingos/logs/impacket.err
 	if [ $? -ne 0 ]; then return 1; fi 
-	/usr/share/.pvenv/bin/pip3 install . |& tee -a /opt/vikingos/logs/impacket.err
+	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/impacket.err
 	if [ $? -ne 0 ]; then return 1; fi 
-	ls /usr/share/.pvenv/bin | grep '.py$' | egrep -v "jp.py" | cut -f 1 -d . | xargs -I {} bash -c 'echo "/usr/share/.pvenv/bin/python3 /usr/share/.pvenv/bin/{}.py \"\$@\" " > /usr/local/bin/impacket-{} && chmod 555 /usr/local/bin/impacket-{}' 
+	ls /opt/vikingos/python_env/bin | grep '.py$' | egrep -v "jp.py" | cut -f 1 -d . | xargs -I {} bash -c 'echo "/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/{}.py \"\$@\" " > /usr/local/bin/impacket-{} && chmod 555 /usr/local/bin/impacket-{}' 
 	IMPACKET_INSTALLED=1
 	rm /opt/vikingos/logs/impacket.err
+	remove_tool_from_continuation_file "impacket"
 }
 
 install_bloodhound() {
@@ -718,6 +846,7 @@ install_bloodhound() {
 	chmod +x BloodHound
 	ln -s /opt/vikingos/windows/BloodHound/BloodHound /usr/local/bin/BloodHound
 	rm /opt/vikingos/logs/bloodhound.err
+	remove_tool_from_continuation_file "bloodhound"
 }
 
 install_nidhogg() {
@@ -726,6 +855,7 @@ install_nidhogg() {
 	git clone https://github.com/Idov31/Nidhogg |& tee -a /opt/vikingos/logs/nidhogg.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/nidhogg.err
+	remove_tool_from_continuation_file "nidhogg"
 }
 
 install_openldap() {
@@ -743,6 +873,7 @@ install_openldap() {
 	make install |& tee -a /opt/vikingos/logs/openldap.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/openldap.err
+	remove_tool_from_continuation_file "openldap"
 }
 
 install_mimikatz() {
@@ -754,6 +885,7 @@ install_mimikatz() {
 	unzip mimikatz* -d mimikatz
 	rm mimikatz*.zip
 	rm /opt/vikingos/logs/mimikatz.err
+	remove_tool_from_continuation_file "mimikatz"
 }
 
 install_kekeo() {
@@ -765,6 +897,7 @@ install_kekeo() {
 	unzip kekeo* -d kekeo
 	rm kekeo*.zip
 	rm /opt/vikingos/logs/kekeo.err
+	remove_tool_from_continuation_file "kekeo"
 }
 
 install_lazagne() {
@@ -774,6 +907,7 @@ install_lazagne() {
 	curl -L -O -J $lazagne_download |& tee -a /opt/vikingos/logs/lazagne.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/lazagne.err
+	remove_tool_from_continuation_file "lazagne"
 }
 
 install_sharpcollection() {
@@ -782,6 +916,7 @@ install_sharpcollection() {
 	git clone https://github.com/Flangvik/SharpCollection |& tee -a /opt/vikingos/logs/sharpcollection.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/sharpcollection.err
+	remove_tool_from_continuation_file "sharpcollection"
 }
 
 install_powersploit() {
@@ -790,6 +925,7 @@ install_powersploit() {
 	git clone https://github.com/PowerShellMafia/PowerSploit |& tee -a /opt/vikingos/logs/powersploit.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/powersploit.err
+	remove_tool_from_continuation_file "powersploit"
 }
 
 install_evilwinrm() {
@@ -798,6 +934,7 @@ install_evilwinrm() {
 	gem install evil-winrm |& tee -a /opt/vikingos/logs/evil-winrm.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/evil-winrm.err
+	remove_tool_from_continuation_file "evil-winrm"
 }
 
 install_enum4linux() {
@@ -807,17 +944,19 @@ install_enum4linux() {
 	if [ $? -ne 0 ]; then return 1; fi 
 	echo 'perl /opt/vikingos/windows/enum4linux/enum4linux.pl "$@"' > /usr/local/bin/enum4linux && chmod 555 /usr/local/bin/enum4linux
 	rm /opt/vikingos/logs/enum4linux.err
+	remove_tool_from_continuation_file "enum4linux"
 }
 
 install_pingcastle() {
 	echo "pingcastle" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
-	pingcastle_download=`curl -s https://api.github.com/repos/vletoux/pingcastle/releases/latest | grep browser_download_url | cut -d '"' -f 4`
+	pingcastle_download=`curl -s https://api.github.com/repos/netwrix/pingcastle/releases/latest | grep browser_download_url | cut -d '"' -f 4`
 	curl -L -O -J $pingcastle_download |& tee -a /opt/vikingos/logs/pingcastle.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	unzip PingCastle* -d PingCastle
 	rm PingCastle*.zip
 	rm /opt/vikingos/logs/pingcastle.err
+	remove_tool_from_continuation_file "pingcastle"
 }
 
 install_nanodump() {
@@ -830,6 +969,7 @@ install_nanodump() {
 	make -f Makefile.mingw || make -f Makefile.clang |& tee -a /opt/vikingos/logs/nanodump.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	rm /opt/vikingos/logs/nanodump.err
+	remove_tool_from_continuation_file "nanodump"
 }
 
 install_kerbrute() {
@@ -842,6 +982,7 @@ install_kerbrute() {
 	if [ $? -ne 0 ]; then return 1; fi 
 	ln -s /opt/vikingos/windows/kerbrute/dist/kerbrute_linux_amd64 /usr/local/bin/kerbrute
 	rm /opt/vikingos/logs/kerbrute.err
+	remove_tool_from_continuation_file "kerbrute"
 }
 
 install_krbrelayx() {
@@ -853,8 +994,9 @@ install_krbrelayx() {
 	git clone https://github.com/dirkjanm/krbrelayx  |& tee -a /opt/vikingos/logs/krbrelayx.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd krbrelayx
-	ls * | grep '.py' | egrep -v '^_' | cut -f 1 -d . | xargs -I {} bash -c 'echo "/usr/share/.pvenv/bin/python3  /opt/vikingos/windows/krbrelayx/{}.py \"\$@\" " > /usr/local/bin/{} && chmod 555 /usr/local/bin/{}'
+	ls * | grep '.py' | egrep -v '^_' | cut -f 1 -d . | xargs -I {} bash -c 'echo "/opt/vikingos/python_env/bin/python3  /opt/vikingos/windows/krbrelayx/{}.py \"\$@\" " > /usr/local/bin/{} && chmod 555 /usr/local/bin/{}'
 	rm /opt/vikingos/logs/krbrelayx.err
+	remove_tool_from_continuation_file "krbrelayx"
 }
 
 install_certipy() {
@@ -866,10 +1008,11 @@ install_certipy() {
 	git clone https://github.com/ly4k/Certipy |& tee -a /opt/vikingos/logs/certipy.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd Certipy
-	/usr/share/.pvenv/bin/pip3 install . |& tee -a /opt/vikingos/logs/certipy.err
+	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/certipy.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.pvenv/bin/python3 /usr/share/.pvenv/bin/certipy "$@"'> /usr/local/bin/certipy && chmod 555 /usr/local/bin/certipy
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/certipy "$@"'> /usr/local/bin/certipy && chmod 555 /usr/local/bin/certipy
 	rm /opt/vikingos/logs/certipy.err
+	remove_tool_from_continuation_file "certipy"
 }
 
 install_incognito() {
@@ -882,6 +1025,7 @@ install_incognito() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ls | egrep -v "\.exe" | xargs rm 
 	rm /opt/vikingos/logs/incognito.err
+	remove_tool_from_continuation_file "incognito"
 }
 
 install_sysinternals() {
@@ -892,6 +1036,7 @@ install_sysinternals() {
 	unzip -d sysinternals SysinternalsSuite.zip 
 	rm SysinternalsSuite.zip
 	rm /opt/vikingos/logs/sysinternals.err
+	remove_tool_from_continuation_file "sysinternals"
 }
 
 install_godpotato() {
@@ -905,6 +1050,7 @@ install_godpotato() {
 	curl -s https://api.github.com/repos/BeichenDream/GodPotato/releases/latest |  grep browser_download_url | grep "NET4" | cut -d '"' -f 4 | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/godpotato.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/godpotato.err
+	remove_tool_from_continuation_file "godpotato"
 }
 
 install_juicypotato() {
@@ -916,6 +1062,7 @@ install_juicypotato() {
 	curl -s https://api.github.com/repos/ohpe/juicy-potato/releases/latest | grep browser_download_url | grep "JuicyPotato.exe" | cut -d '"' -f 4 | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/juicypotato.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/juicypotato.err
+	remove_tool_from_continuation_file "juicypotato"
 }
 
 install_printspoofer() {
@@ -925,6 +1072,7 @@ install_printspoofer() {
 	curl -s https://api.github.com/repos/itm4n/PrintSpoofer/releases/latest | grep browser_download_url | grep "PrintSpoofer" | cut -d '"' -f 4 | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/printspoofer.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/printspoofer.err
+	remove_tool_from_continuation_file "printspoofer"
 }
 
 install_roguepotato() {
@@ -935,34 +1083,42 @@ install_roguepotato() {
 	unzip -d RoguePotato RoguePotato.zip
 	rm RoguePotato.zip
 	rm /opt/vikingos/logs/roguepotato.err
+	remove_tool_from_continuation_file "roguepotato"
 }
 
 install_powershell() {
 	echo "powershell" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
-	apt install -y wget apt-transport-https software-properties-common
-	wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb"
+	apt install -y wget apt-transport-https software-properties-common |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
-	dpkg -i packages-microsoft-prod.deb
+	wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
-	apt update
+	dpkg -i packages-microsoft-prod.deb |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
-	sudo apt install -y powershell
+	apt update |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
+	sudo apt install -y powershell |& tee -a /opt/vikingos/logs/powershell.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/powershell.err
+	remove_tool_from_continuation_file "powershell"
 }
 
 install_winscp() {
 	echo "winscp" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
-	wget -q -O WinSCP_portable.exe "https://cdn.winscp.net/files/WinSCP-6.3.4-Portable.zip?secure=hx8AyUXSE7bflXNSE5UbeQ==,1725135861"
+	wget -q -O WinSCP_portable.exe "https://cdn.winscp.net/files/WinSCP-6.3.4-Portable.zip?secure=hx8AyUXSE7bflXNSE5UbeQ==,1725135861" |& tee -a /opt/vikingos/logs/winscp.err
 	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/winscp.err
+	remove_tool_from_continuation_file "winscp"
 }
 
 install_7zip() {
 	echo "7zip" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
-	wget -q -O 7zip.exe "https://7-zip.org/a/7z2408-x64.exe"
+	wget -q -O 7zip.exe "https://7-zip.org/a/7z2408-x64.exe" |& tee -a /opt/vikingos/logs/win7zip.err
 	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/win7zip.err
+	remove_tool_from_continuation_file "7zip"
 }
 
 
@@ -976,6 +1132,7 @@ install_pspy() {
 	curl -s https://api.github.com/repos/DominicBreuker/pspy/releases/latest | grep browser_download_url | cut -d '"' -f 4 | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/pspy.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/pspy.err
+	remove_tool_from_continuation_file "pspy"
 }
 
 install_sshsnake() {
@@ -984,14 +1141,7 @@ install_sshsnake() {
 	git clone https://github.com/MegaManSec/SSH-Snake |& tee -a /opt/vikingos/logs/sshsnake.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/sshsnake.err
-}
-
-install_reptile() {
-	echo "reptile" >> /etc/vikingos/vikingos.config
-	cd /opt/vikingos/linux-uploads
-	git clone https://github.com/f0rb1dd3n/Reptile |& tee -a /opt/vikingos/logs/reptile.err
-	if [ $? -ne 0 ]; then return 1; fi
-	rm /opt/vikingos/logs/reptile.err
+	remove_tool_from_continuation_file "sshsnake"
 }
 
 install_busybox() {
@@ -1009,6 +1159,7 @@ install_busybox() {
 	curl -L -O -J https://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox |& tee -a /opt/vikingos/logs/busybox.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/busybox.err
+	remove_tool_from_continuation_file "busybox"
 }
 
 #cloud
@@ -1019,11 +1170,12 @@ install_awsbucketdump() {
 	git clone https://github.com/jordanpotti/AWSBucketDump |& tee -a /opt/vikingos/logs/awsbucketdump.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd AWSBucketDump
-	python3 -m venv /usr/share/.awsbucketdump
-	/usr/share/.awsbucketdump/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/awsbucketdump.err
+	python3 -m venv /opt/vikingos/cloud/AWSBucketDump/python_env
+	/opt/vikingos/cloud/AWSBucketDump/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/awsbucketdump.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.awsbucketdump/bin/python3 /opt/vikingos/cloud/AWSBucketDump/AWSBucketDump.py "$@"' > /usr/local/bin/awsbucketdump && chmod 555 /usr/local/bin/awsbucketdump
+	echo '/opt/vikingos/cloud/AWSBucketDump/python_env/bin/python3 /opt/vikingos/cloud/AWSBucketDump/AWSBucketDump.py "$@"' > /usr/local/bin/awsbucketdump && chmod 555 /usr/local/bin/awsbucketdump
 	rm /opt/vikingos/logs/awsbucketdump.err
+	remove_tool_from_continuation_file "awsbucketdump"
 }
 
 install_awsconsoler() {
@@ -1032,15 +1184,16 @@ install_awsconsoler() {
 	git clone https://github.com/NetSPI/aws_consoler |& tee -a /opt/vikingos/logs/awsconsoler.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd aws_consoler
-	python3 -m venv /usr/share/.aws_consoler
-	/usr/share/.aws_consoler/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/awsconsoler.err
+	python3 -m venv /opt/vikingos/cloud/aws_consoler/python_env
+	/opt/vikingos/cloud/aws_consoler/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/awsconsoler.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.aws_consoler/bin/pip3 install setuptools |& tee -a /opt/vikingos/logs/awsconsoler.err
+	/opt/vikingos/cloud/aws_consoler/python_env/bin/pip3 install setuptools |& tee -a /opt/vikingos/logs/awsconsoler.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.aws_consoler/bin/python3 setup.py install |& tee -a /opt/vikingos/logs/awsconsoler.err
+	/opt/vikingos/cloud/aws_consoler/python_env/bin/python3 setup.py install |& tee -a /opt/vikingos/logs/awsconsoler.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.aws_consoler/bin/python3 /opt/vikingos/cloud/aws_consoler/aws_consoler/cli.py "$@"' > /usr/local/bin/aws-consoler && chmod 555 /usr/local/bin/aws-consoler
+	echo '/opt/vikingos/cloud/aws_consoler/python_env/bin/python3 /opt/vikingos/cloud/aws_consoler/aws_consoler/cli.py "$@"' > /usr/local/bin/aws-consoler && chmod 555 /usr/local/bin/aws-consoler
 	rm /opt/vikingos/logs/awsconsoler.err
+	remove_tool_from_continuation_file "aws-consoler"
 }
 
 install_pacu() {
@@ -1049,11 +1202,12 @@ install_pacu() {
 	git clone https://github.com/RhinoSecurityLabs/pacu |& tee -a /opt/vikingos/logs/pacu.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd pacu
-	python3 -m venv /usr/share/.pacu
-	/usr/share/.pacu/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/pacu.err
+	python3 -m venv /opt/vikingos/cloud/pacu/python_env
+	/opt/vikingos/cloud/pacu/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/pacu.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.pacu/bin/python3 /opt/vikingos/cloud/pacu/cli.py "$@"' > /usr/local/bin/pacu && chmod 555 /usr/local/bin/pacu
+	echo '/opt/vikingos/cloud/pacu/python_env/bin/python3 /opt/vikingos/cloud/pacu/cli.py "$@"' > /usr/local/bin/pacu && chmod 555 /usr/local/bin/pacu
 	rm /opt/vikingos/logs/pacu.err
+	remove_tool_from_continuation_file "pacu"
 }
 
 install_enumerateiam() {
@@ -1062,10 +1216,11 @@ install_enumerateiam() {
 	git clone https://github.com/andresriancho/enumerate-iam |& tee -a /opt/vikingos/logs/enumerate-iam.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd enumerate-iam
-	/usr/share/.pvenv/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/enumerate-iam.err
+	/opt/vikingos/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/enumerate-iam.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.pvenv/bin/python3 /opt/vikingos/cloud/enumerate-iam/enumerate-iam.py "$@"' > /usr/local/bin/enumerate-iam && chmod 555 /usr/local/bin/enumerate-iam
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/cloud/enumerate-iam/enumerate-iam.py "$@"' > /usr/local/bin/enumerate-iam && chmod 555 /usr/local/bin/enumerate-iam
 	rm /opt/vikingos/logs/enumerate-iam.err
+	remove_tool_from_continuation_file "enumerate-iam"
 }
 
 install_awscli() {
@@ -1078,6 +1233,7 @@ install_awscli() {
 	./aws/install  |& tee -a /opt/vikingos/logs/awscli.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/awscli.err
+	remove_tool_from_continuation_file "awscli"
 }
 
 install_boto3() {
@@ -1085,11 +1241,12 @@ install_boto3() {
     LOG_FILE="/opt/vikingos/logs/boto3.err"
 
     # Install boto3 using pip within the virtual environment
-    /usr/share/.pvenv/bin/pip3 install boto3 botocore requests python-dotenv aws-secretsmanager-caching Flask fastapi uvicorn pydantic|& tee -a "$LOG_FILE"
+    /opt/vikingos/python_env/bin/pip3 install boto3 botocore requests python-dotenv aws-secretsmanager-caching Flask fastapi uvicorn pydantic|& tee -a "$LOG_FILE"
     if [ $? -ne 0 ]; then return 1; fi
 
     # Clean up the log file upon successful installation
     rm "$LOG_FILE"
+	remove_tool_from_continuation_file "boto3"
 }
 
 install_googlecli() {
@@ -1105,6 +1262,7 @@ install_googlecli() {
 	gcloud init |& tee -a /opt/vikingos/logs/googlecli.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/googlecli.err
+	remove_tool_from_continuation_file "googlecli"
 }
 
 install_azurecli() {
@@ -1117,12 +1275,13 @@ install_azurecli() {
 	mkdir -p /etc/apt/keyrings
 	curl -sLS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null
 	chmod go+r /etc/apt/keyrings/microsoft.gpg
-	AZ_DIST=$(lsb_release -cs)
+	AZ_DIST=$MAIN_CODENAME
 	echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_DIST main" | tee /etc/apt/sources.list.d/azure-cli.list
 	apt-get update
 	apt-get install -y azure-cli |& tee -a /opt/vikingos/logs/azurecli.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/azurecli.err
+	remove_tool_from_continuation_file "azure-cli"
 }
 
 #github
@@ -1139,36 +1298,38 @@ install_trufflehog() {
 	chown root:root trufflehog
 	ln -s /opt/vikingos/github/trufflehog/trufflehog /usr/local/bin/trufflehog
 	rm /opt/vikingos/logs/trufflehog.err
+	remove_tool_from_continuation_file "trufflehog"
 }
 
 #phishing
 
 install_set() {
 	echo "social-engineer-toolkit" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/phishing
+	git clone https://github.com/trustedsec/social-engineer-toolkit |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
+	if [ $? -ne 0 ]; then return 1; fi
 	python_header=`curl -L https://www.python.org/ftp/python | grep 3.11 | tail -1 | cut -f 2 -d '"'`
 	curl -L https://www.python.org/ftp/python/$python_header | grep tar.xz | head -1 | cut -f 2 -d '"' | xargs -I {} curl -L -o /tmp/python.tar.xz https://www.python.org/ftp/python/$python_header/{} |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd /tmp
 	tar xf python.tar.xz --one-top-level=Python3.11 --strip-components 1
 	cd Python3.11
-	mkdir /usr/share/.set
-	./configure --prefix=/usr/share/.set |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
+	mkdir /opt/vikingos/phishing/social-engineer-toolkit/python_env
+	./configure --prefix=/opt/vikingos/phishing/social-engineer-toolkit/python_env |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make install |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
-	cp /usr/share/.set/include/python3.11/cpython/longintrepr.h /usr/share/.set/include/python3.11/
-	cd /opt/vikingos/phishing
-	git clone https://github.com/trustedsec/social-engineer-toolkit |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
+	cp /opt/vikingos/phishing/social-engineer-toolkit/python_env/include/python3.11/cpython/longintrepr.h /opt/vikingos/phishing/social-engineer-toolkit/python_env/include/python3.11/
+	cd /opt/vikingos/phishing/social-engineer-toolkit
+	/opt/vikingos/phishing/social-engineer-toolkit/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
-	cd social-engineer-toolkit
-	/usr/share/.set/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
+	/opt/vikingos/phishing/social-engineer-toolkit/python_env/bin/python3 setup.py |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.set/bin/python3 setup.py |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
-	if [ $? -ne 0 ]; then return 1; fi
-	echo "cd /usr/local/share/setoolkit && /usr/share/.set/bin/python3 /usr/local/share/setoolkit/setoolkit" > /usr/local/bin/setoolkit && chmod 555 /usr/local/bin/setoolkit
+	echo -e 'CURRENT_WORKING_DIR=`pwd`\ncd /usr/local/share/setoolkit\n/opt/vikingos/phishing/social-engineer-toolkit/python_env/bin/python3 /usr/local/share/setoolkit/setoolkit "$@"\ncd $CURRENT_WORKING_DIR' > /usr/local/bin/setoolkit && chmod 555 /usr/local/bin/setoolkit
 	rm /opt/vikingos/logs/social-engineer-toolkit.err
+	remove_tool_from_continuation_file "social-engineer-toolkit"
 }
 
 install_evilginx2() {
@@ -1180,8 +1341,7 @@ install_evilginx2() {
     mkdir -p "$TARGET_DIR" |& tee -a "$LOG_FILE"
     if [ $? -ne 0 ]; then return 1; fi
 
-    cd "$TARGET_DIR" |& tee -a "$LOG_FILE"
-    if [ $? -ne 0 ]; then return 1; fi
+    cd $TARGET_DIR
 
     # Define URLs for the Windows and Linux releases
     WINDOWS_URL="https://github.com/kgretzky/evilginx2/releases/download/v3.3.0/evilginx-v3.3.0-windows-64bit.zip"
@@ -1224,6 +1384,7 @@ install_evilginx2() {
 
     # Clean up the log file upon successful completion
     rm "$LOG_FILE"
+	remove_tool_from_continuation_file "evilginx2"
 }
 
 #evasion
@@ -1238,6 +1399,7 @@ install_donut() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ln -s /opt/vikingos/evasion/donut/donut /usr/local/bin/donut
 	rm /opt/vikingos/logs/donut.err
+	remove_tool_from_continuation_file "donut"
 }
 
 install_FilelessPELoader() {
@@ -1246,12 +1408,12 @@ install_FilelessPELoader() {
 	git clone https://github.com/SaadAhla/FilelessPELoader.git |& tee -a /opt/vikingos/logs/filelesspeloader.err
 	if [ $? -ne 0 ]; then return 1; fi
 
-	python3 -m venv /usr/share/.FilelessPELoader
-	/usr/share/.FilelessPELoader/bin/pip3 install pycryptodome pycryptodomex |& tee -a /opt/vikingos/logs/filelesspeloader.err
+	python3 -m venv /opt/vikingos/evasion/FilelessPELoader/python_env
+	/opt/vikingos/evasion/FilelessPELoader/python_env/bin/pip3 install pycryptodome pycryptodomex |& tee -a /opt/vikingos/logs/filelesspeloader.err
 	if [ $? -ne 0 ]; then return 1; fi
 
 	# Python launcher wrapper
-	echo '/usr/share/.FilelessPELoader/bin/python3 /opt/vikingos/evasion/FilelessPELoader/loader.py "$@"' > /usr/local/bin/filelesspeloader-python
+	echo '/opt/vikingos/evasion/FilelessPELoader/python_env/bin/python3 /opt/vikingos/evasion/FilelessPELoader/loader.py "$@"' > /usr/local/bin/filelesspeloader-python
 	chmod 555 /usr/local/bin/filelesspeloader-python
 
 	# Add compile reminder to README
@@ -1259,6 +1421,7 @@ install_FilelessPELoader() {
 	echo "x86_64-w64-mingw32-gcc -o FilelessPELoader.exe FilelessPELoader.c" >> /opt/vikingos/evasion/FilelessPELoader/README.txt
 
 	rm /opt/vikingos/logs/filelesspeloader.err
+	remove_tool_from_continuation_file "FilelessPELoader"
 }
 
 install_scarecrow() {
@@ -1273,50 +1436,53 @@ install_scarecrow() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ln -s /opt/vikingos/evasion/ScareCrow/ScareCrow /usr/local/bin/ScareCrow
 	rm /opt/vikingos/logs/scarecrow.err
+	remove_tool_from_continuation_file "scarecrow"
 }
 
 install_ebowla() {
 	echo "ebowla" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/evasion 
+	git clone https://github.com/Genetic-Malware/Ebowla |& tee -a /opt/vikingos/logs/ebowla.err
+	if [ $? -ne 0 ]; then return 1; fi
 	python_header=`curl -L https://www.python.org/ftp/python | grep 2.7.14 | tail -1 | cut -f 2 -d '"'`
 	curl -L https://www.python.org/ftp/python/$python_header | grep tar.xz | head -1 | cut -f 2 -d '"' | xargs -I {} curl -L -o /tmp/python.tar.xz https://www.python.org/ftp/python/$python_header/{} |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd /tmp
 	tar xf python.tar.xz --one-top-level=Python2.7 --strip-components 1
 	cd Python2.7
-	mkdir /usr/share/.ebowla
-	./configure --prefix=/usr/share/.ebowla |& tee -a /opt/vikingos/logs/ebowla.err
+	mkdir /opt/vikingos/evasion/Ebowla/python_env
+	./configure --prefix=/opt/vikingos/evasion/Ebowla/python_env |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make install |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
+	cd ..
 	rm -rf /tmp/Python2.7
 	curl -o /tmp/get-pip.py https://bootstrap.pypa.io/pip/2.7/get-pip.py |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.ebowla/bin/python2.7 /tmp/get-pip.py |& tee -a /opt/vikingos/logs/ebowla.err
+	/opt/vikingos/evasion/Ebowla/python_env/bin/python2.7 /tmp/get-pip.py |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.ebowla/bin/pip2.7 install "pycrypto==2.6.1"  |& tee -a /opt/vikingos/logs/ebowla.err
+	/opt/vikingos/evasion/Ebowla/python_env/bin/pip2.7 install "pycrypto==2.6.1"  |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.ebowla/bin/pip2.7 install "pyinstaller==3.6" |& tee -a /opt/vikingos/logs/ebowla.err
+	/opt/vikingos/evasion/Ebowla/python_env/bin/pip2.7 install "pyinstaller==3.6" |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.ebowla/bin/pip2.7 install "configobj==5.0.6" |& tee -a /opt/vikingos/logs/ebowla.err
+	/opt/vikingos/evasion/Ebowla/python_env/bin/pip2.7 install "configobj==5.0.6" |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
-	/usr/share/.ebowla/bin/pip2.7 install "pyparsing==2.4.7" |& tee -a /opt/vikingos/logs/ebowla.err
+	/opt/vikingos/evasion/Ebowla/python_env/bin/pip2.7 install "pyparsing==2.4.7" |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
 	apt-get install -y wine wine64 |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
 	curl -L -o /tmp/go.tar.gz https://go.dev/dl/go1.19.linux-amd64.tar.gz |& tee -a /opt/vikingos/logs/ebowla.err
 	if [ $? -ne 0 ]; then return 1; fi
-	tar -C /usr/share/.ebowla -xzf /tmp/go.tar.gz
+	tar -C /opt/vikingos/evasion/Ebowla/python_env -xzf /tmp/go.tar.gz
 	rm /tmp/go.tar.gz
-	cd /opt/vikingos/evasion 
-	git clone https://github.com/Genetic-Malware/Ebowla |& tee -a /opt/vikingos/logs/ebowla.err
-	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.ebowla/bin/python2.7 /opt/vikingos/evasion/Ebowla/ebowla.py "$@"' > /usr/local/bin/ebowla && chmod 555 /usr/local/bin/ebowla
-	echo 'PATH=/usr/share/.ebowla/go/bin:$PATH cp -r /opt/vikingos/evasion/Ebowla/MemoryModule . && /opt/vikingos/evasion/Ebowla/build_x86_go.sh "$@" && rm -rf MemoryModule' > /usr/local/bin/ebowla-build-x86 && chmod 555 /usr/local/bin/ebowla-build-x86
-	echo 'PATH=/usr/share/.ebowla/go/bin:$PATH cp -r /opt/vikingos/evasion/Ebowla/MemoryModule . && /opt/vikingos/evasion/Ebowla/build_x64_go.sh "$@" && rm -rf MemoryModule' > /usr/local/bin/ebowla-build-x64 && chmod 555 /usr/local/bin/ebowla-build-x64
+	echo '/opt/vikingos/evasion/Ebowla/python_env/bin/python2.7 /opt/vikingos/evasion/Ebowla/ebowla.py "$@"' > /usr/local/bin/ebowla && chmod 555 /usr/local/bin/ebowla
+	echo 'PATH=/opt/vikingos/evasion/Ebowla/python_env/go/bin:$PATH cp -r /opt/vikingos/evasion/Ebowla/MemoryModule . && /opt/vikingos/evasion/Ebowla/build_x86_go.sh "$@" && rm -rf MemoryModule' > /usr/local/bin/ebowla-build-x86 && chmod 555 /usr/local/bin/ebowla-build-x86
+	echo 'PATH=/opt/vikingos/evasion/Ebowla/python_env/go/bin:$PATH cp -r /opt/vikingos/evasion/Ebowla/MemoryModule . && /opt/vikingos/evasion/Ebowla/build_x64_go.sh "$@" && rm -rf MemoryModule' > /usr/local/bin/ebowla-build-x64 && chmod 555 /usr/local/bin/ebowla-build-x64
 	echo 'cp /opt/vikingos/evasion/Ebowla/genetic.config .' >  /usr/local/bin/ebowla-genetic-config-copy && chmod 555 /usr/local/bin/ebowla-genetic-config-copy
 	rm /opt/vikingos/logs/ebowla.err
+	remove_tool_from_continuation_file "ebowla"
 }
 
 #pivoting
@@ -1343,13 +1509,15 @@ install_chisel() {
 	if [ $? -ne 0 ]; then return 1; fi
 	gunzip *.gz
 	rm /opt/vikingos/logs/chisel.err
+	remove_tool_from_continuation_file "chisel"
 }
 
 install_uploadserver() {
 	echo "uploadserver" >> /etc/vikingos/vikingos.config
-	pip3 install uploadserver |& tee -a /opt/vikingos/logs/uploadserver.err
+	/opt/vikingos/python_env/bin/pip3 install uploadserver |& tee -a /opt/vikingos/logs/uploadserver.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/uploadserver.err
+	remove_tool_from_continuation_file "uploadserver"
 	
 }
 install_ligolong()
@@ -1450,6 +1618,7 @@ install_ligolong()
 	unzip -d . ligolo-ng.zip
 	rm ligolo-ng.zip LICENSE README.md
 	rm /opt/vikingos/logs/ligolo-ng.err
+	remove_tool_from_continuation_file "ligolo-ng"
 }
 #c2
 
@@ -1462,6 +1631,7 @@ install_sliver() {
 	chmod +x /usr/local/bin/sliver-server
     curl -s https://api.github.com/repos/BishopFox/sliver/releases/latest | grep browser_download_url | cut -d '"' -f 4 | xargs -n 1 curl -L -O  |& tee -a /opt/vikingos/logs/sliver.err
     rm /opt/vikingos/logs/sliver.err
+	remove_tool_from_continuation_file "sliver"
 }
 
 install_mythic() {
@@ -1473,6 +1643,7 @@ install_mythic() {
 	make
 	ln -s /opt/vikingos/c2/Mythic/mythic-cli /usr/local/bin/mythic-cli
 	rm /opt/vikingos/logs/mythic.err
+	remove_tool_from_continuation_file "mythic"
 }
 
 install_merlin() {
@@ -1492,6 +1663,7 @@ install_merlin() {
 	ln -s /opt/vikingos/c2/merlin/merlinServer-Linux-x64 /usr/local/bin/merlinServer
 	ln /opt/vikingos/c2/merlin/data/bin/merlinCLI-Linux-x64 /usr/local/bin/merlinCLI
 	rm /opt/vikingos/logs/merlin.err
+	remove_tool_from_continuation_file "merlin"
 }
 
 install_villain() {
@@ -1500,11 +1672,12 @@ install_villain() {
 	git clone https://github.com/t3l3machus/Villain |& tee -a /opt/vikingos/logs/villain.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd Villain
-	python3 -m venv /usr/share/.villain
-	/usr/share/.villain/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/villain.err
+	python3 -m venv /opt/vikingos/c2/Villain/python_env
+	/opt/vikingos/c2/Villain/python_env/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/villain.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.villain/bin/python3 /opt/vikingos/c2/Villain/Villain.py' > /usr/local/bin/villain && chmod 555 /usr/local/bin/villain 
+	echo '/opt/vikingos/c2/Villain/python_env/bin/python3 /opt/vikingos/c2/Villain/Villain.py' > /usr/local/bin/villain && chmod 555 /usr/local/bin/villain 
 	rm /opt/vikingos/logs/villain.err
+	remove_tool_from_continuation_file "villain"
 }
 
 install_havoc() {
@@ -1527,6 +1700,7 @@ install_havoc() {
 	if [ $? -ne 0 ]; then return 1; fi
 	echo 'cd /opt/vikingos/c2/Havoc && ./havoc "$@"' > /usr/local/bin/havoc && chmod 555 /usr/local/bin/havoc
 	rm /opt/vikingos/logs/havoc.err
+	remove_tool_from_continuation_file "havoc"
 }
 
 install_poshc2() {
@@ -1535,6 +1709,7 @@ install_poshc2() {
 	curl -sSL https://raw.githubusercontent.com/nettitude/PoshC2/master/Install.sh | bash |& tee -a /opt/vikingos/logs/poshc2.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/poshc2.err
+	remove_tool_from_continuation_file "poshc2"
 }
 
 #privesc
@@ -1580,6 +1755,7 @@ install_peassng() {
 	ln -s /opt/vikingos/privesc/linpeas /usr/share/vikingos-resources/linux-uploads/
 	ln -s /opt/vikingos/privesc/winpeas /usr/share/vikingos-resources/windows-uploads/
 	rm /opt/vikingos/logs/peass-ng.err
+	remove_tool_from_continuation_file "peass-ng"
 }
 
 #hexeditor
@@ -1588,13 +1764,15 @@ install_okteta() {
 	apt-get install -y okteta |& tee -a /opt/vikingos/logs/okteta.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/okteta.err
+	remove_tool_from_continuation_file "okteta"
 }
 
 install_bless() {
 	echo "bless" >> /etc/vikingos/vikingos.config
 	apt-get install -y bless |& tee -a /opt/vikingos/logs/bless.err
-	if [ $? -ne 0 ]; then return 1; fi
+	if [ $? -ne 0 ]; then return 1;	fi
 	rm /opt/vikingos/logs/bless.err
+	remove_tool_from_continuation_file "bless"
 }
 
 #browsers
@@ -1609,18 +1787,18 @@ install_brave() {
 	apt install -y brave-browser |& tee -a /opt/vikingos/logs/brave.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/brave.err
+	remove_tool_from_continuation_file "brave"
 }
 
 install_chromium() {
 	echo "chromium-browser" >> /etc/vikingos/vikingos.config
 	if [[ $OS == *"ubuntu"* ]]; then
 		apt-get install -y chromium-browser |& tee -a /opt/vikingos/logs/chromium.err
-		if [ $? -ne 0 ]; then return 1; fi
 	else
 		apt-get install -y chromium |& tee -a /opt/vikingos/logs/chromium.err
-		if [ $? -ne 0 ]; then return 1; fi
 	fi
 	rm /opt/vikingos/logs/chromium.err
+	remove_tool_from_continuation_file "chromium-browser"
 }
 
 #virtualization
@@ -1636,7 +1814,7 @@ install_incus() {
 Enabled: yes
 Types: deb
 URIs: https://pkgs.zabbly.com/incus/stable
-Suites: $(. /etc/os-release && echo ${VERSION_CODENAME})
+Suites: ${MAIN_CODENAME}
 Components: main
 Architectures: $(dpkg --print-architecture)
 Signed-By: /etc/apt/keyrings/zabbly.asc
@@ -1661,9 +1839,11 @@ EOF'
 		if [ $? -ne 0 ]; then return 1; fi
 		cp /root/go/bin/distrobuilder /usr/local/bin		
 		rm /opt/vikingos/logs/incus.err
+		remove_tool_from_continuation_file "incus"
 	else
 		read -p "Something is wrong with the gpg key for the zabbly repo. Please check and install manually. Press any key to resume..."
 	fi
+	
 }
 
 install_qemu() {
@@ -1671,6 +1851,7 @@ install_qemu() {
 	apt-get install -y qemu-system qemu-user |& tee -a /opt/vikingos/logs/qemu.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/qemu.err
+	remove_tool_from_continuation_file "qemu"
 }
 
 install_libvirt() {
@@ -1678,6 +1859,7 @@ install_libvirt() {
 	apt-get install -y libvirt-clients libvirt-daemon-system virtinst |& tee -a /opt/vikingos/logs/libvirt.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/libvirt.err
+	remove_tool_from_continuation_file "libvirt"
 }
 
 install_kubectl() {
@@ -1690,6 +1872,7 @@ install_kubectl() {
 	install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl |& tee -a /opt/vikingos/logs/kubectl.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/kubectl.err
+	remove_tool_from_continuation_file "kubectl"
 }
 
 #coding
@@ -1699,13 +1882,13 @@ install_vscode() {
 	cd /opt/vikingos/coding
 	mkdir vscode
 	cd vscode
-	VSCODE_LINK=`curl -L https://code.visualstudio.com/sha | jq . | grep deb | grep url | grep amd64 | egrep -v insiders | cut -f 4 -d '"'`
-	curl -L -O -J $VSCODE_LINK |& tee -a /opt/vikingos/logs/vscode.err
+	curl -L -O -J 'https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64' |& tee -a /opt/vikingos/logs/vscode.err
 	if [ $? -ne 0 ]; then return 1; fi
 	PATH=$PATH:/usr/sbin:/sbin dpkg -i * |& tee -a /opt/vikingos/logs/vscode.err
 	if [ $? -ne 0 ]; then return 1; fi
 
 	rm /opt/vikingos/logs/vscode.err
+	remove_tool_from_continuation_file "vscode"
 }
 
 install_nasm() {
@@ -1713,6 +1896,7 @@ install_nasm() {
 	apt-get install -y nasm |& tee -a /opt/vikingos/logs/nasm.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/nasm.err
+	remove_tool_from_continuation_file "nasm"
 }
 
 install_musl() {
@@ -1728,6 +1912,7 @@ install_musl() {
 	make install |& tee -a /opt/vikingos/logs/musl.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/musl.err
+	remove_tool_from_continuation_file "musl"
 }
 
 install_perl() {
@@ -1735,6 +1920,7 @@ install_perl() {
 	apt-get install -y perl |& tee -a /opt/vikingos/logs/perl.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/perl.err
+	remove_tool_from_continuation_file "perl"
 }
 
 install_ruby() {
@@ -1742,6 +1928,7 @@ install_ruby() {
 	apt-get install -y ruby |& tee -a /opt/vikingos/logs/ruby.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/ruby.err
+	remove_tool_from_continuation_file "ruby"
 }
 
 install_rust() {
@@ -1755,7 +1942,8 @@ install_rust() {
 	export CARGO_HOME
 	curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path |& tee -a /opt/vikingos/logs/rust.err
 	if [ $? -ne 0 ]; then return 1; fi
-	ls /opt/vikingos/coding/rust/bin | xargs -I {} bash -c 'echo "RUSTUP_HOME=/opt/vikingos/coding/rust exec /opt/vikingos/coding/rust/bin/{} \"\$@\" " > /usr/local/bin/{} && chmod 555 /usr/local/bin/{}'
+	ls /opt/vikingos/coding/rust/bin | xargs -I {} ln -s /opt/vikingos/coding/rust/bin/{} /usr/local/bin/{}
+	echo -e 'export RUSTUP_HOME=/opt/vikingos/coding/rust/\nexport CARGO_HOME=/opt/vikingos/coding/rust/' > /etc/profile.d/rust.sh
 	rm /opt/vikingos/logs/rust.err
 }
 
@@ -1764,6 +1952,7 @@ install_clang() {
 	apt-get install -y clang |& tee -a /opt/vikingos/logs/clang.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/clang.err
+	remove_tool_from_continuation_file "clang"
 }
 
 install_mingw() {
@@ -1771,6 +1960,7 @@ install_mingw() {
 	apt-get install -y mingw-w64 |& tee -a /opt/vikingos/logs/mingw-w64.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/mingw-w64.err
+	remove_tool_from_continuation_file "mingw-w64"
 }
 
 install_nim() {
@@ -1784,6 +1974,7 @@ install_nim() {
 	./install.sh /usr/local/bin |& tee -a /opt/vikingos/logs/nim.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/nim.err
+	remove_tool_from_continuation_file "nim"
 }
 
 #notes
@@ -1799,6 +1990,7 @@ install_ghostwriter() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ln -s /opt/vikingos/notes/Ghostwriter/ghostwriter-cli-linux /usr/local/bin/ghostwriter
 	rm /opt/vikingos/logs/ghostwriter.err
+	remove_tool_from_continuation_file "ghostwriter"
 }
 
 install_cherrytree() {
@@ -1815,70 +2007,72 @@ install_cherrytree() {
 	fi
 	ls | xargs -I {} ln -s /opt/vikingos/notes/cherrytree/{} /usr/local/bin/cherrytree
 	rm /opt/vikingos/logs/cherrytree.err
+	remove_tool_from_continuation_file "cherrytree"
 }
 
 install_mousetrap() {
-set -e
+	echo "mousetrap" >> /etc/vikingos/vikingos.config
+	set -e
 
-# Install pynvim for Python 3 support in Neovim
-pip3 install --user --upgrade pynvim
+	# Install pynvim for Python 3 support in Neovim
+	/opt/vikingos/python_env/bin/pip3 install --upgrade pynvim
 
-# Define directories
-VIM_DIR="$HOME/.vim"
-BUNDLE_DIR="$VIM_DIR/bundle"
-VUNDLE_DIR="$BUNDLE_DIR/Vundle.vim"
-NVIM_CONFIG_DIR="$HOME/.config/nvim"
-INIT_VIM="$NVIM_CONFIG_DIR/init.vim"
+	# Define directories
+	VIM_DIR="$HOME/.vim"
+	BUNDLE_DIR="$VIM_DIR/bundle"
+	VUNDLE_DIR="$BUNDLE_DIR/Vundle.vim"
+	NVIM_CONFIG_DIR="$HOME/.config/nvim"
+	INIT_VIM="$NVIM_CONFIG_DIR/init.vim"
 
-# Create necessary directories
-mkdir -p "$BUNDLE_DIR"
-mkdir -p "$NVIM_CONFIG_DIR"
+	# Create necessary directories
+	mkdir -p "$BUNDLE_DIR"
+	mkdir -p "$NVIM_CONFIG_DIR"
 
-# Install Vundle if not already installed
-if [ ! -d "$VUNDLE_DIR" ]; then
-  git clone https://github.com/VundleVim/Vundle.vim.git "$VUNDLE_DIR"
-fi
+	# Install Vundle if not already installed
+	if [ ! -d "$VUNDLE_DIR" ]; then
+  		git clone https://github.com/VundleVim/Vundle.vim.git "$VUNDLE_DIR"
+	fi
 
-# Create init.vim with plugin configurations
-cat > "$INIT_VIM" <<EOL
-set nocompatible              " be iMproved, required
-filetype off                  " required
+	# Create init.vim with plugin configurations
+	cat > "$INIT_VIM" <<EOL
+	set nocompatible              " be iMproved, required
+	filetype off                  " required
 
-" set the runtime path to include Vundle and initialize
-set rtp+=~/.vim/bundle/Vundle.vim
-call vundle#begin()
+	" set the runtime path to include Vundle and initialize
+	set rtp+=~/.vim/bundle/Vundle.vim
+	call vundle#begin()
 
-" let Vundle manage Vundle, required
-Plugin 'VundleVim/Vundle.vim'
+	" let Vundle manage Vundle, required
+	Plugin 'VundleVim/Vundle.vim'
 
-" Mousetrap plugin
-Plugin 'CleverNamesTaken/Mousetrap'
+	" Mousetrap plugin
+	Plugin 'CleverNamesTaken/Mousetrap'
 
-" UltiSnips for snippets
-Plugin 'SirVer/ultisnips'
+	" UltiSnips for snippets
+	Plugin 'SirVer/ultisnips'
 
-" vim-markdown for Markdown editing
-Plugin 'preservim/vim-markdown'
+	" vim-markdown for Markdown editing
+	Plugin 'preservim/vim-markdown'
 
-call vundle#end()            " required
-filetype plugin indent on    " required
+	call vundle#end()            " required
+	filetype plugin indent on    " required
 
-" UltiSnips configuration
-let g:UltiSnipsExpandTrigger="<tab>"
-let g:UltiSnipsJumpForwardTrigger="<c-j>"
-let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+	" UltiSnips configuration
+	let g:UltiSnipsExpandTrigger="<tab>"
+	let g:UltiSnipsJumpForwardTrigger="<c-j>"
+	let g:UltiSnipsJumpBackwardTrigger="<c-k>"
 
-" vim-markdown configuration
-let g:vim_markdown_folding_disabled = 1
-let g:vim_markdown_conceal = 0
-let g:vim_markdown_frontmatter = 1
+	" vim-markdown configuration
+	let g:vim_markdown_folding_disabled = 1
+	let g:vim_markdown_conceal = 0
+	let g:vim_markdown_frontmatter = 1
 EOL
 
-# Install plugins using Neovim
-nvim +PluginInstall +qall
+	# Install plugins using Neovim
+	nvim +PluginInstall +qall
 
-echo "Neovim setup complete with Vundle, Mousetrap, UltiSnips, and vim-markdown."
-
+	echo "Neovim setup complete with Vundle, Mousetrap, UltiSnips, and vim-markdown."
+	remove_tool_from_continuation_file "mousetrap"
 }
 
 install_sysreptor() {
@@ -1897,6 +2091,23 @@ install_sysreptor() {
 	fi
 
 	rm /opt/vikingos/logs/sysreptor.err
+	remove_tool_from_continuation_file "sysreptor"
+}
+
+install_trilium() {
+	echo "trilium" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/notes
+	mkdir tmp
+	cd tmp
+	curl -s https://api.github.com/repos/TriliumNext/Trilium/releases/latest | grep browser_download_url | grep x64 | grep ".deb" | cut -f 4 -d '"' | xargs -I {} curl -L -o trilium.deb {} |& tee -a /opt/vikingos/logs/trilium.err
+	if [ $? -ne 0 ]; then return 1; fi
+	dpkg -i trilium.deb |& tee -a /opt/vikingos/logs/trilium.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm trilium.deb
+	cd ..
+	rmdir tmp
+	rm /opt/vikingos/logs/trilium.err
+	remove_tool_from_continuation_file "trilium"
 }
 
 install_obsidian() {
@@ -1909,6 +2120,7 @@ install_obsidian() {
 	chmod +x obsidian
 	ln -s /opt/vikingos/notes/obsidian/obsidian /usr/local/bin/obsidian
 	rm /opt/vikingos/logs/obsidian.err
+	remove_tool_from_continuation_file "obsidian"
 }
 
 install_latex() {
@@ -1922,6 +2134,7 @@ install_latex() {
 	latex_dir=`ls /usr/local/texlive/20*`
 	export PATH=$latex_dir/bin/x86_64-linux:$PATH
 	rm /opt/vikingos/logs/latex.err
+	remove_tool_from_continuation_file "latex"
 
 }
 
@@ -1935,6 +2148,7 @@ install_drawio() {
 	apt -y install ./drawio* |& tee -a /opt/vikingos/logs/drawio.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/drawio.err
+	remove_tool_from_continuation_file "drawio"
 }
 
 #net
@@ -1954,6 +2168,7 @@ install_macchanger() {
 	make install |& tee -a /opt/vikingos/logs/macchanger.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/macchanger.err
+	remove_tool_from_continuation_file "macchanger"
 }
 
 install_hp_lights_out() {
@@ -1978,6 +2193,7 @@ install_hp_lights_out() {
 
     # Clean up the log file upon successful completion
     rm "$LOG_FILE"
+	remove_tool_from_continuation_file "hp_lights_out"
 }
 
 
@@ -1990,6 +2206,7 @@ install_jdgui() {
 	if [ $? -ne 0 ]; then return 1; fi
 	ls | xargs -I {} echo 'java -jar /opt/vikingos/coding/jd-gui/{}' > /usr/local/bin/jd-gui && chmod 555 /usr/local/bin/jd-gui
 	rm /opt/vikingos/logs/jdgui.err
+	remove_tool_from_continuation_file "jd-gui"
 }
 
 install_nfsserver() {
@@ -2002,6 +2219,7 @@ install_nfsserver() {
 		if [ $? -ne 0 ]; then return 1; fi
 	fi
 	rm /opt/vikingos/logs/nfsserver.err
+	remove_tool_from_continuation_file "nfs-server"
 }
 
 #opensource research
@@ -2012,11 +2230,12 @@ install_harvester() {
 	git clone https://github.com/laramies/theHarvester |& tee -a /opt/vikingos/logs/harvester.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd theHarvester
-	python3 -m venv /usr/share/.harvester
-	/usr/share/.harvester/bin/pip3 install -r requirements.txt |& tee -a /opt/vikingos/logs/harvester.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/usr/share/.harvester/bin/python3 /opt/vikingos/opensource-research/theHarvester/theHarvester.py' > /usr/local/bin/harvester && chmod 555 /usr/local/bin/harvester
+	uv sync |& tee -a /opt/vikingos/logs/harvester.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo -e 'CURRENT_WORKING_DIR=`pwd`\ncd /opt/vikingos/opensource-research/theHarvester\nuv run /opt/vikingos/opensource-research/theHarvester/theHarvester.py "$@"\ncd $CUURENT_WORKING_DIR' > /usr/local/bin/harvester && chmod 555 /usr/local/bin/harvester
 	rm /opt/vikingos/logs/harvester.err
+	remove_tool_from_continuation_file "harvester"
 }
 
 #encryption/password managers
@@ -2026,11 +2245,12 @@ install_keepassxc() {
 	cd /opt/vikingos/encryption_password_managers
 	mkdir keepassxc
 	cd keepassxc
-	curl -L https://keepassxc.org/download/#linux | grep -i "Download Appimage" | cut -f 2 -d '"' | xargs -I {} curl -L -o keepassxc {} |& tee -a /opt/vikingos/logs/keepassxc.err
+	curl -L https://keepassxc.org/download/#linux | grep -i "x86_64.AppImage" | head -n 1 | cut -f 2 -d '"' | xargs -I {} curl -L -o keepassxc {} |& tee -a /opt/vikingos/logs/keepassxc.err	
 	if [ $? -ne 0 ]; then return 1; fi
 	chmod +x keepassxc
 	ln -s /opt/vikingos/encryption_password_managers/keepassxc/keepassxc /usr/local/bin/keepassxc
 	rm /opt/vikingos/logs/keepassxc.err
+	remove_tool_from_continuation_file "keepassxc"
 }
 
 install_veracrypt() {
@@ -2039,16 +2259,17 @@ install_veracrypt() {
 	mkdir veracrypt
 	cd veracrypt
 	if [[ $OS == *"ubuntu"* ]]; then
-		curl -L https://veracrypt.fr/en/Downloads.html | grep href | grep -i `echo $OS | cut -d '=' -f 2` | grep -i `echo $VERSION_ID | cut -d '"' -f 2 | cut -f 1 -d '.'` | head -n 1 | cut -f 2 -d '"' | sed -e "s/&#43;/+/g" | xargs -I {} curl -L -O -J {} |& tee -a /opt/vikingos/logs/veracrypt.err
+		curl -L https://veracrypt.fr/en/Downloads.html | grep href | grep -i `echo $OS | cut -d '=' -f 2` | grep -i `echo $VERSION_ID` | head -n 1 | cut -f 2 -d '"' | sed -e "s/&#43;/+/g" | xargs -I {} curl -L -O -J {} |& tee -a /opt/vikingos/logs/veracrypt.err
 		if [ $? -ne 0 ]; then return 1; fi
 	else
-		curl -L https://veracrypt.fr/en/Downloads.html | grep href | grep -i `echo $OS | cut -d '=' -f 2` | grep -i `echo $VERSION_ID | cut -d '"' -f 2` | head -n 1 | cut -f 2 -d '"' | sed -e "s/&#43;/+/g" | xargs -I {} curl -L -O -J {} |& tee -a /opt/vikingos/logs/veracrypt.err
+		curl -L https://veracrypt.fr/en/Downloads.html | grep href | grep -i `echo $OS | cut -d '=' -f 2` | grep -i `echo $VERSION_ID` | head -n 1 | cut -f 2 -d '"' | sed -e "s/&#43;/+/g" | xargs -I {} curl -L -O -J {} |& tee -a /opt/vikingos/logs/veracrypt.err
 		if [ $? -ne 0 ]; then return 1; fi
 	fi
 	apt -y install ./*.deb |& tee -a /opt/vikingos/logs/veracrypt.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm *.deb
 	rm /opt/vikingos/logs/veracrypt.err
+	remove_tool_from_continuation_file "veracrypt"
 }
 
 install_bitwarden() {
@@ -2056,11 +2277,12 @@ install_bitwarden() {
 	cd /opt/vikingos/encryption_password_managers
 	mkdir bitwarden
 	cd bitwarden
-	curl -L -o bitwarden https://vault.bitwarden.com/download/?app=desktop\&platform=linux |& tee -a /opt/vikingos/logs/bitwardent.err
+	curl -L -o bitwarden https://vault.bitwarden.com/download/?app=desktop\&platform=linux |& tee -a /opt/vikingos/logs/bitwarden.err
 	if [ $? -ne 0 ]; then return 1; fi
 	chmod +x bitwarden
 	ln -s /opt/vikingos/encryption_password_managers/bitwarden/bitwarden /usr/local/bin/bitwarden
-	rm /opt/vikingos/logs/bitwardent.err
+	rm /opt/vikingos/logs/bitwarden.err
+	remove_tool_from_continuation_file "bitwarden"
 }
 
 install_tor() {
@@ -2068,6 +2290,7 @@ install_tor() {
 	apt-get install -y tor |& tee -a /opt/vikingos/logs/tor.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/tor.err
+	remove_tool_from_continuation_file "tor"
 }
 
 install_vscode_extensions() {
@@ -2168,6 +2391,7 @@ EOF
     echo "[+] VS Code telemetry settings applied at: $VSCODE_SETTINGS_PATH"
 
     rm -f "$LOG_FILE"
+	remove_tool_from_continuation_file "vscode-extensions"
 }
 
 install_zsh() {
@@ -2178,6 +2402,7 @@ install_zsh() {
     if [ $? -ne 0 ]; then return 1; fi
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended |& tee -a /opt/vikingos/logs/zsh.err
 	rm /opt/vikingos/logs/zsh.err
+	remove_tool_from_continuation_file "zsh"
 }
 
 install_glab() {
@@ -2194,8 +2419,49 @@ install_glab() {
 	if [ $? -ne 0 ]; then return 1; fi
 
 	rm /opt/vikingos/logs/glab.err
+	remove_tool_from_continuation_file "glab"
 }
 
+#wireless
+install_aircrack_ng() {
+	echo "aircrack_ng" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/wireless
+	git clone https://github.com/aircrack-ng/aircrack-ng.git |& tee -a /opt/vikingos/logs/aircrack_ng.err
+	if [ $? -ne 0 ]; then return 1; fi
+	apt-get -y install build-essential autoconf automake libtool pkg-config libnl-3-dev libnl-genl-3-dev libssl-dev ethtool shtool rfkill zlib1g-dev libpcap-dev libsqlite3-dev libpcre2-dev libhwloc-dev libcmocka-dev hostapd wpasupplicant tcpdump screen iw usbutils expect |& tee -a /opt/vikingos/logs/aircrack_ng.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd aircrack-ng
+	autoreconf -i |& tee -a /opt/vikingos/logs/aircrack_ng.err
+	if [ $? -ne 0 ]; then return 1; fi
+	./configure --with-experimental |& tee -a /opt/vikingos/logs/aircrack_ng.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make |& tee -a /opt/vikingos/logs/aircrack_ng.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make install |& tee -a /opt/vikingos/logs/aircrack_ng.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/aircrack_ng.err
+	remove_tool_from_continuation_file "aircrack_ng"
+}
+
+install_kismet() {
+	echo "kismet" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/wireless
+	git clone https://www.kismetwireless.net/git/kismet.git |& tee -a /opt/vikingos/logs/kismet.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd kismet
+	apt install -y build-essential git libwebsockets-dev pkg-config zlib1g-dev libnl-3-dev libnl-genl-3-dev libcap-dev libpcap-dev libnm-dev libdw-dev libsqlite3-dev libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler libsensors-dev libusb-1.0-0-dev python3 python3-setuptools python3-protobuf python3-requests python3-numpy python3-serial python3-usb python3-dev python3-websockets libubertooth-dev libbtbb-dev libmosquitto-dev librtlsdr-dev |& tee -a /opt/vikingos/logs/kismet.err
+	if [ $? -ne 0 ]; then return 1; fi
+	apt install -y rtl-433 |& tee -a /opt/vikingos/logs/kismet.err
+	if [ $? -ne 0 ]; then return 1; fi
+	./configure |& tee -a /opt/vikingos/logs/kismet.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make -j$(nproc) |& tee -a /opt/vikingos/logs/kismet.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make suidinstall |& tee -a /opt/vikingos/logs/kismet.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/kismet.err
+	remove_tool_from_continuation_file "kismet"
+}
 
 choices=''
 if [ $# -eq 1 ]
@@ -2233,6 +2499,7 @@ else
 		dnsrecon "" on
 		dnsenum "" on
 		sleuthkit "" on
+		autopsy "" on
 		volatility "" on
 		binwalk "" on
 		ghidra "" on
@@ -2277,7 +2544,6 @@ else
         7zip "" on
 		pspy "" on
 		sshsnake "" on
-		reptile "" on
 		busybox "" on
 		awsbucketdump "" on
 		aws-consoler "" on
@@ -2317,16 +2583,16 @@ else
 		musl "" on
 		perl "" on
 		ruby "" on
-		rust "" on 
 		clang "" on
 		mingw-w64 "" on
 		nim "" on
-        vscode_extensions "" off
+        vscode_extensions_NOT_OPSEC_SAFE "" off
 		ghostwriter "" off
 		cherrytree "" on
         mousetrap "" on
         sysreptor "" on
-		obsidian "" on
+		obsidian "" off
+		trilium "" on
 		latex "" off
 		drawio "" on
 		macchanger "" on
@@ -2338,195 +2604,212 @@ else
 		bitwarden "" on
 		tor "" off
         zsh "" on
+		aircrack_ng "" on
+		kismet "" on
 		nfs-server "" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+	echo $choices >> /tmp/vikingos.continue
 	clear
 fi
 
-apt-get install -y smbclient
-apt-get install -y recordmydesktop
-apt-get install -y screengrab
-apt-get install -y shutter
-apt-get install -y curl
-apt-get install -y git
-apt-get install -y gcc
-apt-get install -y bzip2
-apt-get install -y make
-apt-get install -y cmake
-apt-get install -y build-essential
-apt-get install -y libssl-dev
-apt-get install -y libssh-dev 
-apt-get install -y automake
-apt-get install -y gdb
-apt-get install -y nodejs 
-apt-get install -y node
-apt-get install -y npm
-apt-get install -y postgresql-client
-apt-get install -y sqlite3 sqlite3-tools
-apt-get install -y sqlitebrowser
-apt-get install -y python3-pip
-apt-get install -y wireshark
-apt-get install -y openjdk-17-jre openjdk-17-jdk
-apt-get install -y ruby-rubygems ruby-dev
-apt-get install -y ssh
-apt-get install -y vim
-apt-get install -y texinfo
-apt-get install -y python3-pip python3-venv python3-virtualenv
-apt-get install -y sshuttle
-apt-get install -y gdb
-apt-get install -y nfs-common
-apt-get install -y openvpn
-apt-get install -y wireguard
-apt-get install -y proxychains
-apt-get install -y iptables-persistent
-apt-get install -y krb5-config krb5-user
-apt-get install -y freerdp2-x11
-apt-get install -y libffi-dev
-apt-get install -y screen
-apt-get install -y tmux
-apt-get install -y terminator
-apt-get install -y net-tools
-apt-get install -y xfburn
-apt-get install -y ipmitool
-apt-get install -y open-vm-tools
-apt-get install -y libreoffice
-apt-get install -y gimp
-apt-get install -y vlc
-apt-get install -y klogg
-apt-get install -y softhsm2
-apt-get install -y opensc
-apt-get install -y filezilla
-apt-get install -y samba
-apt-get install -y telnet
-apt-get install -y minicom
-apt-get install -y yubikey-manager
-apt-get install -y yubikey-luks
-apt-get install -y yubikey-piv-tool
-apt-get install -y yubikey-personalization
-apt-get install -y yubikey-personalization-gui
-apt-get install -y yubikey-manager-qt
-apt-get install -y yubioath-desktop
-apt-get install -y gnupg2
-apt-get install -y pcscd
-apt-get install -y scdaemon
-apt-get install -y pcscd
-apt-get install -y pcsc-tools
-apt-get install -y scdaemon 
-apt-get install -y gnupg2
-apt-get install -y kleopatra
-apt-get install -y scdaemon 
-apt-get install -y p7zip-full
-apt-get install -y net-tools
-apt-get install -y neovim
-pip3 install --user --upgrade pynvim
-apt-get install -y sed
-apt-get install -y uuid-runtime
-apt-get install -y coreutils
-apt-get install -y socat
-apt-get install -y minicom 
-apt-get install -y fzf
-apt-get install -y bat
-apt-get install -y ripgrep
-sudo snap install dbeaver-ce
+if [ ! -f /etc/vikingos/vikingos.config ]; then
+	apt-get install -y smbclient
+	apt-get install -y recordmydesktop
+	apt-get install -y screengrab
+	apt-get install -y shutter
+	apt-get install -y curl
+	apt-get install -y git
+	apt-get install -y gcc
+	apt-get install -y bzip2
+	apt-get install -y make
+	apt-get install -y cmake
+	apt-get install -y build-essential
+	apt-get install -y libssl-dev
+	apt-get install -y libssh-dev 
+	apt-get install -y automake
+	apt-get install -y gdb
+	apt-get install -y nodejs 
+	apt-get install -y node
+	apt-get install -y npm
+	apt-get install -y postgresql-client
+	apt-get install -y sqlite3 sqlite3-tools
+	apt-get install -y sqlitebrowser
+	apt-get install -y python3-pip
+	apt-get install -y wireshark
+	apt-get install -y openjdk-17-jre openjdk-17-jdk
+	apt-get install -y ruby-rubygems ruby-dev
+	apt-get install -y ssh
+	apt-get install -y vim
+	apt-get install -y texinfo
+	apt-get install -y python3-pip python3-venv python3-virtualenv
+	apt-get install -y sshuttle
+	apt-get install -y gdb
+	apt-get install -y nfs-common
+	apt-get install -y openvpn
+	apt-get install -y wireguard
+	apt-get install -y proxychains
+	apt-get install -y iptables-persistent
+	apt-get install -y krb5-config krb5-user
+	apt-get install -y freerdp2-x11
+	apt-get install -y libffi-dev
+	apt-get install -y screen
+	apt-get install -y tmux
+	apt-get install -y terminator
+	apt-get install -y net-tools
+	apt-get install -y xfburn
+	apt-get install -y ipmitool
+	apt-get install -y open-vm-tools
+	apt-get install -y libreoffice
+	apt-get install -y gimp
+	apt-get install -y vlc
+	apt-get install -y klogg
+	apt-get install -y softhsm2
+	apt-get install -y opensc
+	apt-get install -y filezilla
+	apt-get install -y samba
+	apt-get install -y telnet
+	apt-get install -y minicom
+	apt-get install -y yubikey-manager
+	apt-get install -y yubikey-luks
+	apt-get install -y yubikey-piv-tool
+	apt-get install -y yubikey-personalization
+	apt-get install -y yubikey-personalization-gui
+	apt-get install -y yubikey-manager-qt
+	apt-get install -y yubioath-desktop
+	apt-get install -y gnupg2
+	apt-get install -y pcscd
+	apt-get install -y scdaemon
+	apt-get install -y pcscd
+	apt-get install -y pcsc-tools
+	apt-get install -y scdaemon 
+	apt-get install -y gnupg2
+	apt-get install -y kleopatra
+	apt-get install -y scdaemon 
+	apt-get install -y p7zip-full
+	apt-get install -y net-tools
+	apt-get install -y neovim
+	#pip3 install --user --upgrade pynvim
+	apt-get install -y sed
+	apt-get install -y uuid-runtime
+	apt-get install -y coreutils
+	apt-get install -y socat
+	apt-get install -y minicom 
+	apt-get install -y fzf
+	apt-get install -y bat
+	apt-get install -y ripgrep
+	if [ -f "/etc/apt/preferences.d/nosnap.pref" ]; then
+		mv /etc/apt/preferences.d/nosnap.pref /etc/apt/preferences.d/nosnap.bak
+		apt-get install -y snapd
+	fi
+	apt-get install snapd
+	sudo snap install dbeaver-ce
+	export XDG_BIN_HOME=/usr/local/bin
+	curl -LsSf https://astral.sh/uv/install.sh | sh
+
+
+
+	# Install Jira CLI tools
+	echo "Installing Jira CLI tools..."
+	npm install -g jira-cli
+
+	# Install Confluence CLI tools
+	echo "Installing Confluence CLI tools..."
+	npm install -g confluence-cli
+
+	# Install Bitbucket CLI tools
+	echo "Installing Bitbucket CLI tools..."
+	npm install -g bitbucket-cli
+
+	echo "Installing AWS SDK npm"
+	npm install -g aws-sdk
+
+
+	echo "Atlassian CLI tools installation complete."
+	echo "Development environment setup complete."
 
 
 
 
-# Install Jira CLI tools
-echo "Installing Jira CLI tools..."
-npm install -g jira-cli
-
-# Install Confluence CLI tools
-echo "Installing Confluence CLI tools..."
-npm install -g confluence-cli
-
-# Install Bitbucket CLI tools
-echo "Installing Bitbucket CLI tools..."
-npm install -g bitbucket-cli
-
-echo "Installing AWS SDK npm"
-npm install -g aws-sdk
-
-
-echo "Atlassian CLI tools installation complete."
-echo "Development environment setup complete."
 
 
 
+	if [[ $OS == *"ubuntu"* ]]; then
+		apt-get install -y 7zip
+	fi
 
+	if [[ $OS == *"ubuntu"* ]]; then
+		apt-get install -y ca-certificates curl
+		install -m 0755 -d /etc/apt/keyrings
+		curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+		chmod a+r /etc/apt/keyrings/docker.asc
+		echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $MAIN_CODENAME stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+		apt-get update
+		apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+	else
+		apt-get install -y ca-certificates curl
+		install -m 0755 -d /etc/apt/keyrings
+		curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+		chmod a+r /etc/apt/keyrings/docker.asc
+		echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $MAIN_CODENAME stable" |  tee /etc/apt/sources.list.d/docker.list > /dev/null
+		apt-get update
+		apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+	fi
 
+	python3 -m venv /opt/vikingos/python_env
+	mkdir /etc/vikingos
+	mkdir /opt/vikingos
+	mkdir /opt/vikingos/logs
+	mkdir /opt/vikingos/scanning
+	mkdir /opt/vikingos/bruteforce
+	mkdir /opt/vikingos/exploit
+	mkdir /opt/vikingos/sql
+	mkdir /opt/vikingos/relay
+	mkdir /opt/vikingos/web
+	mkdir /opt/vikingos/snmp
+	mkdir /opt/vikingos/dns
+	mkdir /opt/vikingos/forensics
+	mkdir /opt/vikingos/resources
+	ln -s /opt/vikingos/resources /usr/share/vikingos-resources
+	mkdir /opt/vikingos/resources/wordlists
+	mkdir /opt/vikingos/password-cracking
+	mkdir /opt/vikingos/windows
+	mkdir /opt/vikingos/windows-uploads
+	ln -s /opt/vikingos/windows-uploads /usr/share/vikingos-resources/
+	mkdir /opt/vikingos/linux-uploads
+	ln -s /opt/vikingos/linux-uploads /usr/share/vikingos-resources/
+	mkdir /opt/vikingos/cloud
+	mkdir /opt/vikingos/github
+	mkdir /opt/vikingos/phishing
+	mkdir /opt/vikingos/evasion
+	mkdir /opt/vikingos/c2
+	mkdir /opt/vikingos/privesc
+	ln -s /opt/vikingos/privesc /usr/share/vikingos-resources
+	mkdir /opt/vikingos/coding
+	mkdir /opt/vikingos/notes
+	mkdir /opt/vikingos/net
+	mkdir /opt/vikingos/virtualization
+	mkdir /opt/vikingos/opensource-research
+	mkdir /opt/vikingos/pivoting
+	mkdir /opt/vikingos/encryption_password_managers
+	mkdir /opt/vikingos/wireless
 
+	cd /opt/vikingos/coding
+	mkdir go
+	cd go
+	curl -L https://go.dev/dl | grep linux-amd64 | head -1 | cut -f 4 -d '"' | xargs -I {} curl -L -O -J https://go.dev/{}
+	rm -rf /usr/local/go && tar -C /usr/local -xzf go*
+	echo "export PATH=/usr/local/go/bin:\$PATH:/usr/sbin:/sbin" >> /etc/profile
+	echo "export PATH=/usr/local/go/bin:\$PATH:/usr/sbin:/sbin" >> /etc/bash.bashrc
+	source /etc/profile
+	rm -rf /usr/bin/go
+	ln -s /usr/local/go/bin/go /usr/bin/go
 
-if [[ $OS == *"ubuntu"* ]]; then
-	apt-get install -y 7zip
+	install_rust
+	install_mdbook
 fi
-
-if [[ $OS == *"ubuntu"* ]]; then
-	apt-get install -y ca-certificates curl
-	install -m 0755 -d /etc/apt/keyrings
-	curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-	chmod a+r /etc/apt/keyrings/docker.asc
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-	apt-get update
-	apt-get -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-else
-	apt-get install -y ca-certificates curl
-	install -m 0755 -d /etc/apt/keyrings
-	curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
-	chmod a+r /etc/apt/keyrings/docker.asc
-	echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" |  tee /etc/apt/sources.list.d/docker.list > /dev/null
-	apt-get update
-	apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-fi
-
-python3 -m venv /usr/share/.pvenv
-mkdir /etc/vikingos
-mkdir /opt/vikingos
-mkdir /opt/vikingos/logs
-mkdir /opt/vikingos/scanning
-mkdir /opt/vikingos/bruteforce
-mkdir /opt/vikingos/exploit
-mkdir /opt/vikingos/sql
-mkdir /opt/vikingos/relay
-mkdir /opt/vikingos/web
-mkdir /opt/vikingos/snmp
-mkdir /opt/vikingos/dns
-mkdir /opt/vikingos/forensics
-mkdir /opt/vikingos/resources
-ln -s /opt/vikingos/resources /usr/share/vikingos-resources
-mkdir /opt/vikingos/resources/wordlists
-mkdir /opt/vikingos/password-cracking
-mkdir /opt/vikingos/windows
-mkdir /opt/vikingos/windows-uploads
-ln -s /opt/vikingos/windows-uploads /usr/share/vikingos-resources/
-mkdir /opt/vikingos/linux-uploads
-ln -s /opt/vikingos/linux-uploads /usr/share/vikingos-resources/
-mkdir /opt/vikingos/cloud
-mkdir /opt/vikingos/github
-mkdir /opt/vikingos/phishing
-mkdir /opt/vikingos/evasion
-mkdir /opt/vikingos/c2
-mkdir /opt/vikingos/privesc
-ln -s /opt/vikingos/privesc /usr/share/vikingos-resources
-mkdir /opt/vikingos/coding
-mkdir /opt/vikingos/notes
-mkdir /opt/vikingos/net
-mkdir /opt/vikingos/virtualization
-mkdir /opt/vikingos/opensource-research
-mkdir /opt/vikingos/pivoting
-mkdir /opt/vikingos/encryption_password_managers
-
-cd /opt/vikingos/coding
-mkdir go
-cd go
-curl -L https://go.dev/dl | grep linux-amd64 | head -1 | cut -f 4 -d '"' | xargs -I {} curl -L -O -J https://go.dev/{}
-rm -rf /usr/local/go && tar -C /usr/local -xzf go*
-echo "export PATH=/usr/local/go/bin:\$PATH:/usr/sbin:/sbin" >> /etc/profile
-echo "export PATH=/usr/local/go/bin:\$PATH:/usr/sbin:/sbin" >> /etc/bash.bashrc
-source /etc/profile
-rm -rf /usr/bin/go
-ln -s /usr/local/go/bin/go /usr/bin/go
-
+clear
+echo -e "A continuation file has been created at /tmp/vikingos.continue. If this process gets interrupted for any reason during its run, then the continuation file can be used with this script to resume at the last place the script was at. Just run the command:\n sudo ./vikingos.sh /tmp/vikingos.continue\n"
+sleep 30
 for choice in $choices
 do
 	case $choice in
@@ -2619,6 +2902,9 @@ do
 			;;
 		sleuthkit)
 			install_sleuthkit
+			;;
+		autopsy)
+			install_autopsy
 			;;
 		volatility)
 			install_volatility
@@ -2752,9 +3038,6 @@ do
 		sshsnake)
 			install_sshsnake
 			;;
-		reptile)
-			install_reptile
-			;;
 		busybox)
 			install_busybox
 			;;
@@ -2872,9 +3155,6 @@ do
 		ruby)
 			install_ruby
 			;;
-		rust)
-			install_rust
-			;;
 		clang)
 			install_clang
 			;;
@@ -2901,6 +3181,9 @@ do
 			;;
 		obsidian)
 			install_obsidian
+			;;
+		trilium)
+			install_trilium
 			;;
 		latex)
 			install_latex
@@ -2938,21 +3221,29 @@ do
         glab) 
             install_glab
             ;;
+		aircrack_ng)
+			install_aircrack_ng
+			;;
+		kismet)
+			install_kismet
+			;;
 		nfs-server)
 			install_nfsserver
 			;;
 	esac
-done
+donebasting brush 
 
 echo -ne "Thank you for using vikingos! Some tips:\n\n"
 echo -ne "\tFor future builds, you can use /etc/vikingos/vikingos.config to build this same config. Just do ./vikingos.sh vikingos.config!\n\n"
-echo -ne "\tFor sliver, make sure you start the service/server then run "armory install all" on the sliver-client and sliver-server to get all the extensions"
+echo -ne "\tFor sliver, make sure you start the service/server then run "armory install all" on the sliver-client and sliver-server to get all the extensions\n"
 echo -ne "\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\t"
 echo -ne "\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n"
-echno -ne "\tIf you install firefoxtools, you need to go to /opt/vikingos/web/firefoxtools and install the extensions manually"
+echno -ne "\tIf you installed firefoxtools, you need to go to /opt/vikingos/web/firefoxtools and install the extensions manually\n"
 echo -ne "\tResources for the os are located at /usr/share/vikingos-resources\n\n"
-echo -ne "\tDev extensions for VS Code install script will need to be run as a normal user in the coding folder"
-echo -ne "\tFor cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this,  they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
+echo -ne "\tDev extensions for VS Code install script will need to be run as a normal user in the coding folder\n"
+echo -ne "\tFor cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this, they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
+echo -ne "\tIf you installed kismet, run the following command to add yourself to the kismet group:  usermod -aG kismet your-user-here\n"
+echo -ne "\tA reboot is required for rust to work properly. A shell script has been added to /etc/profile.d to add environment variables needed for rust. If needed, run the shell script found at /etc/profile.d/rust.sh.\n\n"
 if [ -z "$(ls -A /opt/vikingos/logs)" ]; then
 	echo "All Packages installed!"
 else
