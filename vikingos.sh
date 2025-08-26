@@ -3231,7 +3231,7 @@ do
 			install_nfsserver
 			;;
 	esac
-donebasting brush 
+done
 
 echo -ne "Thank you for using vikingos! Some tips:\n\n"
 echo -ne "\tFor future builds, you can use /etc/vikingos/vikingos.config to build this same config. Just do ./vikingos.sh vikingos.config!\n\n"
