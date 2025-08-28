@@ -8,6 +8,10 @@ fi
 #for logging and error checking
 set -o pipefail
 
+RUSTUP_HOME=/opt/vikingos/coding/rust
+export RUSTUP_HOME
+CARGO_HOME=/opt/vikingos/coding/rust
+export CARGO_HOME
 
 #setting codenames and versions
 declare -A ubuntu_lookup_table
@@ -672,6 +676,16 @@ install_hacktricks() {
 	echo -e '#!/bin/bash\ncd /opt/vikingos/resources/hacktricks\nmdbook build\nmdbook serve\n' > /usr/local/bin/hacktricks && chmod 555 /usr/local/bin/hacktricks
 	rm /opt/vikingos/logs/hacktricks.err
 	remove_tool_from_continuation_file "hacktricks"
+}
+
+install_hackerrecipes() {
+	echo "hackerrecipes" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/resources
+	git clone https://github.com/The-Hacker-Recipes/The-Hacker-Recipes |& tee -a /opt/vikingos/logs/hackerrecipes.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo -e '#!/bin/bash\ncd /opt/vikingos/resources/The-Hacker-Recipes/docs/src/\nmdbook build\nmdbook serve\n' > /usr/local/bin/hacker-recipes && chmod 555 /usr/local/bin/hacker-recipes
+	rm /opt/vikingos/logs/hackerrecipes.err
+	remove_tool_from_continuation_file "hackerrecipes"
 }
 
 install_mdbook() {
@@ -1827,7 +1841,7 @@ EOF'
 		if [ $? -ne 0 ]; then return 1; fi
 		incus config set core.https_address "localhost:8443" |& tee -a /opt/vikingos/logs/incus.err
 		if [ $? -ne 0 ]; then return 1; fi
-		apt install -y debootstrap rsync gpg squashfs-tools git make |& tee -a /opt/vikingos/logs/incus.err
+		apt install -y debootstrap rsync gpg squashfs-tools git make build-essential libwin-hivex-perl wimtools genisoimage |& tee -a /opt/vikingos/logs/incus.err
 		if [ $? -ne 0 ]; then return 1; fi
 		cd /opt/vikingos/virtualization
 		git clone https://github.com/lxc/distrobuilder |& tee -a /opt/vikingos/logs/incus.err
@@ -2508,6 +2522,7 @@ else
 		jadx "" on
 		seclists "" on
         hacktricks "" on
+		hackerrecipes "" on
 		payloadallthethings "" on
 		rockyou "" on
         kwprocessor "" on
@@ -2930,6 +2945,9 @@ do
         hacktricks)
             install_hacktricks
 			;;
+		hackerrecipes)
+			install_hackerrecipes
+			;;
 		payloadallthethings)
 			install_payloadallthethings
 			;;
@@ -3238,7 +3256,7 @@ echo -ne "\tFor future builds, you can use /etc/vikingos/vikingos.config to buil
 echo -ne "\tFor sliver, make sure you start the service/server then run "armory install all" on the sliver-client and sliver-server to get all the extensions\n"
 echo -ne "\tIf you installed Mythic, using a root shell run the following command to initalize Mythic: cd /opt/vikingos/c2/Mythic && mythic-cli\n\n\t"
 echo -ne "\tIf you installed BloodHound, please run the BloodHound command to install all the docker containers and change the password for BloodHound(see https://github.com/SpecterOps/BloodHound for more details)\n\n"
-echno -ne "\tIf you installed firefoxtools, you need to go to /opt/vikingos/web/firefoxtools and install the extensions manually\n"
+echo -ne "\tIf you installed firefoxtools, you need to go to /opt/vikingos/web/firefoxtools and install the extensions manually\n"
 echo -ne "\tResources for the os are located at /usr/share/vikingos-resources\n\n"
 echo -ne "\tDev extensions for VS Code install script will need to be run as a normal user in the coding folder\n"
 echo -ne "\tFor cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this, they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
