@@ -323,7 +323,7 @@ install_burpsuite() {
 	curl -L -o install_burpsuite.sh https://portswigger.net$BURPAPPEND |& tee -a /opt/vikingos/logs/burpsuite.err
 	if [ $? -ne 0 ]; then return 1; fi
 	chmod 544 install_burpsuite.sh
-	./install_burpsuite.sh |& tee -a /opt/vikingos/logs/burpsuite.err
+	./install_burpsuite.sh -q |& tee -a /opt/vikingos/logs/burpsuite.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/burpsuite.err
 	remove_tool_from_continuation_file "burpsuite"
@@ -338,7 +338,7 @@ install_zap() {
 	curl -L -o zap.sh $ZAPAPPEND |& tee -a /opt/vikingos/logs/zap.err
 	if [ $? -ne 0 ]; then return 1; fi
 	chmod 544 zap.sh
-	./zap.sh |& tee -a /opt/vikingos/logs/zap.err
+	./zap.sh -q |& tee -a /opt/vikingos/logs/zap.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/zap.err
 	remove_tool_from_continuation_file "zap"
@@ -863,6 +863,24 @@ install_bloodhound() {
 	remove_tool_from_continuation_file "bloodhound"
 }
 
+install_bloodhound_python_ce() {
+	if [ "$IMPACKET_INSTALLED" -eq 0 ]; then
+		install_impacket
+	fi
+	echo "bloodhound_python_ce" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/dirkjanm/BloodHound.py |& tee -a /opt/vikingos/logs/bloodhound-python-ce.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	cd BloodHound.py
+	git checkout bloodhound-ce |& tee -a /opt/vikingos/logs/bloodhound-python-ce.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/bloodhound-python-ce.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/BloodHound.py/bloodhound.py "$@"' > /usr/local/bin/bloodhound-python-ce && chmod 555 /usr/local/bin/bloodhound-python-ce
+	rm /opt/vikingos/logs/bloodhound-python-ce.err
+	remove_tool_from_continuation_file "bloodhound-python-ce"
+}
+
 install_nidhogg() {
 	echo "nidhogg" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
@@ -1105,7 +1123,7 @@ install_powershell() {
 	cd /opt/vikingos/windows-uploads
 	apt install -y wget apt-transport-https software-properties-common |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
-	wget -q "https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb" |& tee -a /opt/vikingos/logs/powershell.err
+	wget -q "https://packages.microsoft.com/config/$OS/$VERSION_ID/packages-microsoft-prod.deb" |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
 	dpkg -i packages-microsoft-prod.deb |& tee -a /opt/vikingos/logs/powershell.err
 	if [ $? -ne 0 ]; then return 1; fi
@@ -1120,7 +1138,7 @@ install_powershell() {
 install_winscp() {
 	echo "winscp" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
-	wget -q -O WinSCP_portable.exe "https://cdn.winscp.net/files/WinSCP-6.3.4-Portable.zip?secure=hx8AyUXSE7bflXNSE5UbeQ==,1725135861" |& tee -a /opt/vikingos/logs/winscp.err
+	curl -L https://winscp.net/eng/downloads.php | grep Portable.zip | cut -f 2 -d '"' | xargs -I {} curl -L -O -J https://winscp.net{} |& tee -a /opt/vikingos/logs/winscp.err
 	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/winscp.err
 	remove_tool_from_continuation_file "winscp"
@@ -2534,6 +2552,7 @@ else
 		hashcat-rules "" on
 		impacket "" on
 		bloodhound "" on
+		bloodhound-python-ce "" on
 		nidhogg "" on
 		openldap "" on
 		mimikatz "" on
@@ -2980,6 +2999,9 @@ do
 			;;
 		bloodhound)
 			install_bloodhound
+			;;
+		bloodhound-python-ce)
+			install_bloodhound_python_ce
 			;;
 		nidhogg)
 			install_nidhogg
