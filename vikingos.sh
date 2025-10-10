@@ -131,7 +131,10 @@ install_netexec() {
 	cd /opt/vikingos/bruteforce
 	mkdir netexec
 	cd netexec
-	curl -s https://api.github.com/repos/Pennyw0rth/NetExec/releases/latest | grep browser_download_url | grep "nxc\"" | cut -f 4 -d '"' | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/netexec.err
+	curl -s https://api.github.com/repos/Pennyw0rth/NetExec/releases/latest | grep browser_download_url | grep -i "ubuntu" | cut -f 4 -d '"' | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/netexec.err
+	if [ $? -ne 0 ]; then return 1; fi
+	unzip *
+	rm *.zip
 	chmod 755 nxc
 	ln -s /opt/vikingos/bruteforce/netexec/nxc /usr/local/bin/nxc
 	ln -s /opt/vikingos/bruteforce/netexec/nxc /usr/local/bin/netexec
@@ -390,6 +393,21 @@ install_gobuster() {
 	rm /opt/vikingos/logs/gobuster.err
 	ln -s /opt/vikingos/web/gobuster/gobuster /usr/local/bin/gobuster
 	remove_tool_from_continuation_file "gobuster"
+}
+
+install_ffuf() {
+	echo "ffuf" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/web
+	mkdir ffuf
+	cd ffuf
+	curl -s https://api.github.com/repos/ffuf/ffuf/releases/latest | grep browser_download  | grep linux_amd64 | cut -f 4 -d '"' | xargs wget -O ffuf.tar.gz |& tee -a /opt/vikingos/logs/ffuf.err
+	if [ $? -ne 0 ]; then return 1; fi
+	gunzip ffuf.tar.gz
+	tar xf ffuf.tar.gz
+	rm ffuf.tar.gz
+	ln -s /opt/vikingos/web/ffuf/ffuf /usr/local/bin/ffuf
+	rm /opt/vikingos/logs/ffuf.err
+	remove_tool_from_continuation_file "ffuf"
 }
 
 install_cewl() {
@@ -748,6 +766,15 @@ install_crackstationwordlists() {
 	remove_tool_from_continuation_file "crackstation-wordlists"
 }
 
+isntall_PWDB_wordlists() {
+	echo "PWDB_wordlists" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/resources/wordlists
+	git clone https://github.com/ignis-sec/Pwdb-Public |& tee -a /opt/vikingos/logs/PWDB_wordlists.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	rm /opt/vikingos/logs/PWDB_wordlists.err
+	remove_tool_from_continuation_file "PWDB_wordlists"
+}
+
 install_cyberchef() {
 	echo "cyberchef" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/resources
@@ -825,6 +852,8 @@ install_hashcatrules() {
 	git clone https://github.com/NotSoSecure/password_cracking_rules |& tee -a /opt/vikingos/logs/hashcat-rules.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	git clone https://github.com/praetorian-inc/Hob0Rules |& tee -a /opt/vikingos/logs/hashcat-rules.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	git clone https://github.com/Unic0rn28/hashcat-rules |& tee -a /opt/vikingos/logs/hashcat-rules.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	cp -r /opt/vikingos/password-cracking/hashcat/rules/* .
 	rm /opt/vikingos/logs/hashcat-rules.err
@@ -908,6 +937,19 @@ install_openldap() {
 	remove_tool_from_continuation_file "openldap"
 }
 
+install_windapsearch() {
+	echo "windapsearch" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/ropnop/windapsearch |& tee -a /opt/vikingos/logs/windapsearch.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	/opt/vikingos/python_env/bin/pip3 install python-ldap |& tee -a /opt/vikingos/logs/windapsearch.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/windapsearch/windapsearch.py "$@"' > /usr/local/bin/windapsearch && chmod 555 /usr/local/bin/windapsearch
+	rm /opt/vikingos/logs/windapsearch.err
+	remove_tool_from_continuation_file "windapsearch"
+
+}
+
 install_mimikatz() {
 	echo "mimikatz" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
@@ -951,6 +993,27 @@ install_sharpcollection() {
 	remove_tool_from_continuation_file "sharpcollection"
 }
 
+install_inveigh() {
+	echo "inveigh" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	mkdir inveigh
+	cd inveigh
+	curl -s https://api.github.com/repos/Kevin-Robertson/Inveigh/releases/latest | grep browser_download_url | grep "net3.5" | cut -d '"' -f 4 | xargs -I {} curl -L -o inveigh_3.5.zip -J {} |& tee -a /opt/vikingos/logs/inveigh.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	unzip -d inveigh_3.5 inveigh_3.5.zip
+	rm inveigh_3.5.zip
+	curl -s https://api.github.com/repos/Kevin-Robertson/Inveigh/releases/latest | grep browser_download_url | grep "net4.6" | cut -d '"' -f 4 | xargs -I {} curl -L -o inveigh_4.6.zip -J {} |& tee -a /opt/vikingos/logs/inveigh.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	unzip -d inveigh_4.6 inveigh_4.6.zip
+	rm inveigh_4.6.zip
+	curl -s https://api.github.com/repos/Kevin-Robertson/Inveigh/releases/latest | grep browser_download_url | grep "net8.0-v2" | cut -d '"' -f 4 | xargs -I {} curl -L -o inveigh_8.0.zip -J {} |& tee -a /opt/vikingos/logs/inveigh.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	unzip -d inveigh_8.0 inveigh_8.0.zip
+	rm inveigh_8.0.zip
+	rm /opt/vikingos/logs/inveigh.err
+	remove_tool_from_continuation_file "inveigh"
+}
+
 install_powersploit() {
 	echo "powersploit" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
@@ -977,6 +1040,22 @@ install_enum4linux() {
 	echo 'perl /opt/vikingos/windows/enum4linux/enum4linux.pl "$@"' > /usr/local/bin/enum4linux && chmod 555 /usr/local/bin/enum4linux
 	rm /opt/vikingos/logs/enum4linux.err
 	remove_tool_from_continuation_file "enum4linux"
+}
+
+install_enum4linux_ng() {
+	echo "enum4linux_ng" >> /etc/vikingos/vikingos.config
+	if [ "$IMPACKET_INSTALLED" -eq 0 ]; then
+		install_impacket
+	fi
+	cd /opt/vikingos/windows
+	git clone https://github.com/cddmp/enum4linux-ng |& tee -a /opt/vikingos/logs/enum4linux-ng.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	/opt/vikingos/python_env/bin/pip3 install smbclient python3-ldap3 python3-yaml |& tee -a /opt/vikingos/logs/enum4linux-ng.err
+	if [ $? -ne 0 ]; then return 1; fi 
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/enum4linux-ng/enum4linux-ng.py "$@"' > /usr/local/bin/enum4linux-ng && chmod 555 /usr/local/bin/enum4linux-ng
+	rm /opt/vikingos/logs/enum4linux-ng.err
+	remove_tool_from_continuation_file "enum4linux_ng"
+
 }
 
 install_pingcastle() {
@@ -1047,6 +1126,69 @@ install_certipy() {
 	remove_tool_from_continuation_file "certipy"
 }
 
+install_keytabextract() {
+	echo "keytabextract" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/sosdave/KeyTabExtract |& tee -a /opt/vikingos/logs/keytabextract.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/KeyTabExtract/keytabextract.py "$@"' > /usr/local/bin/keytabextract && chmod 555 /usr/local/bin/keytabextract
+	rm /opt/vikingos/logs/keytabextract.err
+	remove_tool_from_continuation_file "keytabextract"
+}
+
+install_donpapi() {
+	echo "donpapi" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/login-securite/DonPAPI.git |& tee -a /opt/vikingos/logs/donpapi.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd DonPAPI/
+	python3 -m venv python_environment
+	python_environment/bin/pip3 install poetry |& tee -a /opt/vikingos/logs/donpapi.err
+	if [ $? -ne 0 ]; then return 1; fi
+	python_environment/bin/poetry update |& tee -a /opt/vikingos/logs/donpapi.err
+	if [ $? -ne 0 ]; then return 1; fi
+	python_environment/bin/poetry install |& tee -a /opt/vikingos/logs/donpapi.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/windows/DonPAPI/python_environment/bin/poetry run DonPAPI "$@"' > /usr/local/bin/donpapi && chmod 555 /usr/local/bin/donpapi
+	rm /opt/vikingos/logs/donpapi.err
+	remove_tool_from_continuation_file "donpapi"
+}
+
+install_pywhisker() {
+	echo "pywhisker" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/ShutdownRepo/pywhisker |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd pywhisker
+	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/pywhisker "$@"'> /usr/local/bin/pywhisker && chmod 555 /usr/local/bin/pywhisker
+	rm /opt/vikingos/logs/pywhisker.err
+	remove_tool_from_continuation_file "pywhisker"
+}
+
+install_bloodyad() {
+	echo "bloodyad" >> /etc/vikingos/vikingos.config
+	/opt/vikingos/python_env/bin/pip3 install bloodyAD |& tee -a /opt/vikingos/logs/bloodyad.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/bloodyad "$@"'> /usr/local/bin/bloodyad && chmod 555 /usr/local/bin/bloodyad
+	rm /opt/vikingos/logs/bloodyad.err
+	remove_tool_from_continuation_file "bloodyad"
+}
+
+install_coercer() {
+	echo "coercer" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/p0dalirius/Coercer |& tee -a /opt/vikingos/logs/coercer.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd Coercer
+	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/coercer.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/coercer "$@"'> /usr/local/bin/coercer && chmod 555 /usr/local/bin/coercer
+	rm /opt/vikingos/logs/coercer.err
+	remove_tool_from_continuation_file "coercer"
+}
+
 install_incognito() {
 	echo "incognito" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows-uploads
@@ -1069,6 +1211,24 @@ install_sysinternals() {
 	rm SysinternalsSuite.zip
 	rm /opt/vikingos/logs/sysinternals.err
 	remove_tool_from_continuation_file "sysinternals"
+}
+
+install_writemeupdac() {
+	echo "writemeupdac" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	curl -s https://api.github.com/repos/v1k1ngspl01ts/writemeupdac/releases/latest |  grep browser_download_url | cut -f 4 -d '"' | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/writemeupdac.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/writemeupdac.err
+	remove_tool_from_continuation_file "writemeupdac"
+}
+
+install_snaffler() {
+	echo "snaffler" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows-uploads
+	curl -s https://api.github.com/repos/SnaffCon/Snaffler/releases/latest |  grep browser_download_url | cut -f 4 -d '"' | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/snaffler.err
+	if [ $? -ne 0 ]; then return 1; fi
+	rm /opt/vikingos/logs/snaffler.err
+	remove_tool_from_continuation_file "snaffler"
 }
 
 install_godpotato() {
@@ -2495,6 +2655,37 @@ install_kismet() {
 	remove_tool_from_continuation_file "kismet"
 }
 
+install_hcxtools() {
+	echo "hcxtools" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/wireless
+	git clone https://github.com/ZerBea/hcxtools |& tee -a /opt/vikingos/logs/hcxtools.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd hcxtools
+	apt-get install libssl-dev openssl libcurl4-openssl-dev |& tee -a /opt/vikingos/logs/hcxtools.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make -j $(nproc) |& tee -a /opt/vikingos/logs/hcxtools.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make install
+	rm /opt/vikingos/logs/hcxtools.err
+	remove_tool_from_continuation_file "hcxtools"
+}
+
+install_hcxdumptool() {
+	echo "hcxdumptool" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/wireless
+	git clone https://github.com/ZerBea/hcxdumptool |& tee -a /opt/vikingos/logs/hcxdumptool.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd hcxdumptool
+	apt-get install libssl-dev openssl libcurl4-openssl-dev libpcap-dev |& tee -a /opt/vikingos/logs/hcxdumptool.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make -j $(nproc) |& tee -a /opt/vikingos/logs/hcxdumptool.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make install
+	rm /opt/vikingos/logs/hcxdumptool.err
+	remove_tool_from_continuation_file "hcxdumptool"
+}
+
+
 choices=''
 if [ $# -eq 1 ]
   then
@@ -2522,6 +2713,7 @@ else
 		wpscan "" on
 		feroxbuster "" on
 		gobuster "" on
+		ffuf "" on
 		cewl "" on
 		cadaver "" on
         firefoxtools "" on
@@ -2545,6 +2737,7 @@ else
 		rockyou "" on
         kwprocessor "" on
 		crackstation-wordlists "" on
+		PWDB_wordlists "" on
 		cyberchef "" on
 		crunch "" on
 		john-the-ripper "" on
@@ -2555,20 +2748,30 @@ else
 		bloodhound-python-ce "" on
 		nidhogg "" on
 		openldap "" on
+		windapsearch "" on
 		mimikatz "" on
 		kekeo "" on
 		lazagne "" on
 		sharpcollection "" on
+		inveigh "" on
 		powersploit "" on
 		evil-winrm "" on
 		enum4linux "" on
+		enum4linux_ng "" on
 		pingcastle "" on
 		nanodump "" on
 		kerbrute "" on
 		krbrelayx "" on
 		certipy "" on
+		keytabextract "" on
+		donpapi "" on
+		pywhisker "" on
+		bloodyad "" on
+		coercer "" on
 		incognito "" on
 		sysinternals "" on
+		writemeupdac "" on
+		snaffler "" on
 		godpotato "" on
 		juicypotato "" on
 		printspoofer "" on
@@ -2640,6 +2843,8 @@ else
         zsh "" on
 		aircrack_ng "" on
 		kismet "" on
+		hcxtools "" on
+		hcxdumptool "" on
 		nfs-server "" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	echo $choices >> /tmp/vikingos.continue
@@ -2910,6 +3115,9 @@ do
 		gobuster)
 			install_gobuster
 			;;
+		ffuf)
+			install_ffuf
+			;;
 		cewl)
 			install_cewl
 			;;
@@ -2979,6 +3187,9 @@ do
 		crackstation-wordlists)
 			install_crackstationwordlists
 			;;
+		PWDB_wordlists)
+			isntall_PWDB_wordlists
+			;;
 		cyberchef)
 			install_cyberchef
 			;;
@@ -3009,6 +3220,9 @@ do
 		openldap)
 			install_openldap
 			;;
+		windapsearch)
+			install_windapsearch
+			;;
 		mimikatz)
 			install_mimikatz
 			;;
@@ -3021,6 +3235,9 @@ do
 		sharpcollection)
 			install_sharpcollection
 			;;
+		inveigh)
+			install_inveigh
+			;;
 		powersploit)
 			install_powersploit
 			;;
@@ -3029,6 +3246,9 @@ do
 			;;
 		enum4linux)
 			install_enum4linux
+			;;
+		enum4linux_ng)
+			install_enum4linux_ng
 			;;
 		pingcastle)
 			install_pingcastle
@@ -3045,11 +3265,32 @@ do
 		certipy)
 			install_certipy
 			;;
+		keytabextract)
+			install_keytabextract
+			;;
+		donpapi)
+			install_donpapi
+			;;
+		pywhisker)
+			install_pywhisker
+			;;
+		bloodyad)
+			install_bloodyad
+			;;
+		coercer)
+			install_coercer
+			;;
 		incognito)
 			install_incognito
 			;;
 		sysinternals)
 			install_sysinternals
+			;;
+		writemeupdac)
+			install_writemeupdac
+			;;
+		snaffler)
+			install_snaffler
 			;;
 		godpotato)
 			install_godpotato
@@ -3266,6 +3507,12 @@ do
 			;;
 		kismet)
 			install_kismet
+			;;
+		hcxtools)
+			install_hcxtools
+			;;
+		hcxdumptool)
+			install_hcxdumptool
 			;;
 		nfs-server)
 			install_nfsserver
