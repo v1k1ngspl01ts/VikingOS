@@ -403,8 +403,8 @@ install_ffuf() {
 	curl -s https://api.github.com/repos/ffuf/ffuf/releases/latest | grep browser_download  | grep linux_amd64 | cut -f 4 -d '"' | xargs wget -O ffuf.tar.gz |& tee -a /opt/vikingos/logs/ffuf.err
 	if [ $? -ne 0 ]; then return 1; fi
 	gunzip ffuf.tar.gz
-	tar xf ffuf.tar.gz
-	rm ffuf.tar.gz
+	tar xf ffuf.tar
+	rm ffuf.tar
 	ln -s /opt/vikingos/web/ffuf/ffuf /usr/local/bin/ffuf
 	rm /opt/vikingos/logs/ffuf.err
 	remove_tool_from_continuation_file "ffuf"
@@ -1195,7 +1195,7 @@ install_donpapi() {
 	if [ $? -ne 0 ]; then return 1; fi
 	python_environment/bin/poetry install |& tee -a /opt/vikingos/logs/donpapi.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/opt/vikingos/windows/DonPAPI/python_environment/bin/poetry run DonPAPI "$@"' > /usr/local/bin/donpapi && chmod 555 /usr/local/bin/donpapi
+	echo '/opt/vikingos/windows/DonPAPI/python_environment/bin/poetry --directory=/opt/vikingos/windows/DonPAPI run DonPAPI "$@"' > /usr/local/bin/donpapi && chmod 555 /usr/local/bin/donpapi
 	rm /opt/vikingos/logs/donpapi.err
 	remove_tool_from_continuation_file "donpapi"
 }
@@ -1206,18 +1206,37 @@ install_pywhisker() {
 	git clone https://github.com/ShutdownRepo/pywhisker |& tee -a /opt/vikingos/logs/pywhisker.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd pywhisker
-	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/pywhisker.err
+	mkdir pybuild
+	mkdir python_env
+	curl -o python.tar.xz https://www.python.org/ftp/python/3.10.19/Python-3.10.19.tar.xz |& tee -a /opt/vikingos/logs/pywhisker.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/pywhisker "$@"'> /usr/local/bin/pywhisker && chmod 555 /usr/local/bin/pywhisker
+	tar xf python.tar.xz -C /opt/vikingos/windows/pywhisker/pybuild |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd pybuild
+	./configure --prefix= /opt/vikingos/windows/pywhisker/python_env |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make install |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd ..
+	rm -rf pybuild
+	rm python.tar.xz
+	/opt/vikingos/windows/pywhisker/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/pywhisker.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/windows/pywhisker/python_env/bin/python3 /opt/vikingos/windows/pywhisker/python_env/bin/pywhisker "$@"'> /usr/local/bin/pywhisker && chmod 555 /usr/local/bin/pywhisker
 	rm /opt/vikingos/logs/pywhisker.err
 	remove_tool_from_continuation_file "pywhisker"
 }
 
 install_bloodyad() {
 	echo "bloodyad" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/CravateRouge/bloodyAD & tee -a /opt/vikingos/logs/bloodyad.err
+	if [ $? -ne 0 ]; then return 1; fi
 	/opt/vikingos/python_env/bin/pip3 install bloodyAD |& tee -a /opt/vikingos/logs/bloodyad.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/bloodyad "$@"'> /usr/local/bin/bloodyad && chmod 555 /usr/local/bin/bloodyad
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/bloodyAD/bloodyAD.py "$@"'> /usr/local/bin/bloodyad && chmod 555 /usr/local/bin/bloodyad
 	rm /opt/vikingos/logs/bloodyad.err
 	remove_tool_from_continuation_file "bloodyad"
 }
