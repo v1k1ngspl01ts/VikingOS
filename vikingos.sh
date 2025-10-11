@@ -611,7 +611,7 @@ install_radare2() {
 	cd /opt/vikingos/forensics
 	mkdir radare2
 	cd radare2
-	radare2_link=`curl -s https://api.github.com/repos/radareorg/radare2/releases/latest | grep browser_download_url | egrep -v "dev" | grep "amd64" | cut -d '"' -f 4`
+	radare2_link=`curl -s https://api.github.com/repos/radareorg/radare2/releases/latest | grep browser_download_url | egrep -v "dev" | grep "amd64" | grep "deb" | cut -d '"' -f 4`
 	curl -L -O -J $radare2_link |& tee -a /opt/vikingos/logs/radare2.err
 	if [ $? -ne 0 ]; then return 1; fi
 	dpkg -i * |& tee -a /opt/vikingos/logs/radare2.err
@@ -942,9 +942,9 @@ install_windapsearch() {
 	cd /opt/vikingos/windows
 	git clone https://github.com/ropnop/windapsearch |& tee -a /opt/vikingos/logs/windapsearch.err
 	if [ $? -ne 0 ]; then return 1; fi 
-	/opt/vikingos/python_env/bin/pip3 install python-ldap |& tee -a /opt/vikingos/logs/windapsearch.err
+	apt-get install python3-ldap |& tee -a /opt/vikingos/logs/windapsearch.err
 	if [ $? -ne 0 ]; then return 1; fi 
-	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/windapsearch/windapsearch.py "$@"' > /usr/local/bin/windapsearch && chmod 555 /usr/local/bin/windapsearch
+	echo 'python3 /opt/vikingos/windows/windapsearch/windapsearch.py "$@"' > /usr/local/bin/windapsearch && chmod 555 /usr/local/bin/windapsearch
 	rm /opt/vikingos/logs/windapsearch.err
 	remove_tool_from_continuation_file "windapsearch"
 
@@ -1050,7 +1050,7 @@ install_enum4linux_ng() {
 	cd /opt/vikingos/windows
 	git clone https://github.com/cddmp/enum4linux-ng |& tee -a /opt/vikingos/logs/enum4linux-ng.err
 	if [ $? -ne 0 ]; then return 1; fi 
-	/opt/vikingos/python_env/bin/pip3 install smbclient python3-ldap3 python3-yaml |& tee -a /opt/vikingos/logs/enum4linux-ng.err
+	/opt/vikingos/python_env/bin/pip3 install ldap3 pyyaml |& tee -a /opt/vikingos/logs/enum4linux-ng.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/enum4linux-ng/enum4linux-ng.py "$@"' > /usr/local/bin/enum4linux-ng && chmod 555 /usr/local/bin/enum4linux-ng
 	rm /opt/vikingos/logs/enum4linux-ng.err
