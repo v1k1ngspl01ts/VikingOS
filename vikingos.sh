@@ -1126,6 +1126,52 @@ install_certipy() {
 	remove_tool_from_continuation_file "certipy"
 }
 
+install_mssqlpwner() {
+	echo "mssqlpwner" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/ScorpionesLabs/MSSqlPwner |& tee -a /opt/vikingos/logs/mssqlpwner.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd MSSqlPwner
+	PYTHON_MAJOR_VERSION=`python3 --version | cut -f 2 -d '.'`
+	if [[ $PYTHON_MAJOR_VERSION -lt 11 ]]; then
+		wget -O python.tar.xz https://www.python.org/ftp/python/3.14.0/Python-3.14.0.tar.xz |& tee -a /opt/vikingos/logs/mssqlpwner.err
+		if [ $? -ne 0 ]; then return 1; fi
+		mkdir pybuild
+		tar xf python.tar.xz -C pybuild
+		mkdir python_environment
+		cd pybuild
+		./configure --prefix /opt/vikingos/windows/MSSqlPwner/python_environment |& tee -a /opt/vikingos/logs/mssqlpwner.err
+	    if [ $? -ne 0 ]; then return 1; fi
+		make |& tee -a /opt/vikingos/logs/mssqlpwner.err
+		if [ $? -ne 0 ]; then return 1; fi
+		make install |& tee -a /opt/vikingos/logs/mssqlpwner.err
+		if [ $? -ne 0 ]; then return 1; fi
+		cd ..
+		rm python.tar.xz
+		rm -rf pybuild
+	else
+		python3 -m venv python_environment
+	fi
+	python_environment/bin/pip3 install . |& tee -a /opt/vikingos/logs/mssqlpwner.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/windows/MSSqlPwner/python_environment/bin/python3 /opt/vikingos/windows/MSSqlPwner/mssqlpwner/__main__.py "$@"' > /usr/local/bin/mssqlpwner && chmod 555 /usr/local/bin/mssqlpwner
+	rm /opt/vikingos/logs/mssqlpwner.err
+	remove_tool_from_continuation_file "mssqlpwner"
+}
+
+install_ntlm_theft() {
+	echo "ntlm_theft" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/Greenwolf/ntlm_theft |& tee -a /opt/vikingos/logs/ntlm_theft.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd ntlm_theft
+	/opt/vikingos/python_env/bin/pip3 install xlsxwriter |& tee -a /opt/vikingos/logs/ntlm_theft.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/ntlm_theft/ntlm_theft.py "$@"' > /usr/local/bin/ntlm_theft && chmod 555 /usr/local/bin/ntlm_theft
+	rm /opt/vikingos/logs/ntlm_theft.err
+	remove_tool_from_continuation_file "ntlm_theft"
+}
+
 install_keytabextract() {
 	echo "keytabextract" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows
@@ -2763,6 +2809,8 @@ else
 		kerbrute "" on
 		krbrelayx "" on
 		certipy "" on
+		mssqlpwner "" on
+		ntlm_theft "" on
 		keytabextract "" on
 		donpapi "" on
 		pywhisker "" on
@@ -3264,6 +3312,12 @@ do
 			;;
 		certipy)
 			install_certipy
+			;;
+		mssqlpwner)
+			install_mssqlpwner
+			;;
+		ntlm_theft)
+			install_ntlm_theft
 			;;
 		keytabextract)
 			install_keytabextract
