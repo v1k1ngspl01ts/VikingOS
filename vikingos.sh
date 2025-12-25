@@ -61,7 +61,7 @@ fi
 #	exit
 #fi
 
-apt-get update
+apt-get -y update && apt-get -y upgrade
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -129,15 +129,11 @@ install_nbtscan() {
 install_netexec() {
 	echo "netexec" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/bruteforce
-	mkdir netexec
-	cd netexec
-	curl -s https://api.github.com/repos/Pennyw0rth/NetExec/releases/latest | grep browser_download_url | grep -i "ubuntu" | cut -f 4 -d '"' | xargs -L1 curl -L -O -J |& tee -a /opt/vikingos/logs/netexec.err
+	sudo apt -y install pipx git
+	pipx ensurepath |& tee -a /opt/vikingos/logs/netexec.err
 	if [ $? -ne 0 ]; then return 1; fi
-	unzip *
-	rm *.zip
-	chmod 755 nxc
-	ln -s /opt/vikingos/bruteforce/netexec/nxc /usr/local/bin/nxc
-	ln -s /opt/vikingos/bruteforce/netexec/nxc /usr/local/bin/netexec
+	PIPX_HOME=/opt/vikingos/python_env PIPX_BIN_DIR=/usr/local/bin pipx install git+https://github.com/Pennyw0rth/NetExec |& tee -a /opt/vikingos/logs/netexec.err
+	if [ $? -ne 0 ]; then return 1; fi
 	rm /opt/vikingos/logs/netexec.err
 	remove_tool_from_continuation_file "netexec"
 }
@@ -173,8 +169,8 @@ install_hydra() {
 	make install |& tee -a /opt/vikingos/logs/hydra.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd hydra-gtk
-	apt-get install -y libgtk2.0-dev
-	./configure |& tee -a /opt/vikingos/logs/hydra.err
+	apt-get install -y libgtk-3-dev
+	./autogen.sh |& tee -a /opt/vikingos/logs/hydra.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make |& tee -a /opt/vikingos/logs/hydra.err
 	if [ $? -ne 0 ]; then return 1; fi
@@ -1006,7 +1002,7 @@ install_inveigh() {
 	if [ $? -ne 0 ]; then return 1; fi 
 	unzip -d inveigh_4.6 inveigh_4.6.zip
 	rm inveigh_4.6.zip
-	curl -s https://api.github.com/repos/Kevin-Robertson/Inveigh/releases/latest | grep browser_download_url | grep "net8.0-v2" | cut -d '"' -f 4 | xargs -I {} curl -L -o inveigh_8.0.zip -J {} |& tee -a /opt/vikingos/logs/inveigh.err
+	curl -s https://api.github.com/repos/Kevin-Robertson/Inveigh/releases/latest | grep browser_download_url | grep "net10.0-v2" | cut -d '"' -f 4 | xargs -I {} curl -L -o inveigh_8.0.zip -J {} |& tee -a /opt/vikingos/logs/inveigh.err
 	if [ $? -ne 0 ]; then return 1; fi 
 	unzip -d inveigh_8.0 inveigh_8.0.zip
 	rm inveigh_8.0.zip
@@ -1119,9 +1115,10 @@ install_certipy() {
 	git clone https://github.com/ly4k/Certipy |& tee -a /opt/vikingos/logs/certipy.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd Certipy
-	/opt/vikingos/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/certipy.err
+	python3 -m venv python_env
+	/opt/vikingos/windows/Certipy/python_env/bin/pip3 install . |& tee -a /opt/vikingos/logs/certipy.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/python_env/bin/certipy "$@"'> /usr/local/bin/certipy && chmod 555 /usr/local/bin/certipy
+	echo '/opt/vikingos/windows/Certipy/python_env/bin/python3 /opt/vikingos/windows/Certipy/python_env/bin/certipy "$@"'> /usr/local/bin/certipy && chmod 555 /usr/local/bin/certipy
 	rm /opt/vikingos/logs/certipy.err
 	remove_tool_from_continuation_file "certipy"
 }
@@ -1137,7 +1134,7 @@ install_mssqlpwner() {
 		wget -O python.tar.xz https://www.python.org/ftp/python/3.14.0/Python-3.14.0.tar.xz |& tee -a /opt/vikingos/logs/mssqlpwner.err
 		if [ $? -ne 0 ]; then return 1; fi
 		mkdir pybuild
-		tar xf python.tar.xz -C pybuild
+		tar xf python.tar.xz -C pybuild --strip-components=1
 		mkdir python_environment
 		cd pybuild
 		./configure --prefix /opt/vikingos/windows/MSSqlPwner/python_environment |& tee -a /opt/vikingos/logs/mssqlpwner.err
@@ -1195,7 +1192,7 @@ install_donpapi() {
 	if [ $? -ne 0 ]; then return 1; fi
 	python_environment/bin/poetry install |& tee -a /opt/vikingos/logs/donpapi.err
 	if [ $? -ne 0 ]; then return 1; fi
-	echo '/opt/vikingos/windows/DonPAPI/python_environment/bin/poetry --directory=/opt/vikingos/windows/DonPAPI run DonPAPI "$@"' > /usr/local/bin/donpapi && chmod 555 /usr/local/bin/donpapi
+	echo 'sudo /opt/vikingos/windows/DonPAPI/python_environment/bin/poetry --directory=/opt/vikingos/windows/DonPAPI run DonPAPI "$@"' > /usr/local/bin/donpapi && chmod 555 /usr/local/bin/donpapi
 	rm /opt/vikingos/logs/donpapi.err
 	remove_tool_from_continuation_file "donpapi"
 }
@@ -1210,10 +1207,10 @@ install_pywhisker() {
 	mkdir python_env
 	curl -o python.tar.xz https://www.python.org/ftp/python/3.10.19/Python-3.10.19.tar.xz |& tee -a /opt/vikingos/logs/pywhisker.err
 	if [ $? -ne 0 ]; then return 1; fi
-	tar xf python.tar.xz -C /opt/vikingos/windows/pywhisker/pybuild |& tee -a /opt/vikingos/logs/pywhisker.err
+	tar xf python.tar.xz -C /opt/vikingos/windows/pywhisker/pybuild --strip-components=1 |& tee -a /opt/vikingos/logs/pywhisker.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd pybuild
-	./configure --prefix= /opt/vikingos/windows/pywhisker/python_env |& tee -a /opt/vikingos/logs/pywhisker.err
+	./configure --prefix=/opt/vikingos/windows/pywhisker/python_env |& tee -a /opt/vikingos/logs/pywhisker.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make |& tee -a /opt/vikingos/logs/pywhisker.err
 	if [ $? -ne 0 ]; then return 1; fi
@@ -1229,11 +1226,24 @@ install_pywhisker() {
 	remove_tool_from_continuation_file "pywhisker"
 }
 
+install_pkinit() {
+	echo "pkinit" >> /etc/vikingos/vikingos.config
+	cd /opt/vikingos/windows
+	git clone https://github.com/dirkjanm/PKINITtools |& tee -a /opt/vikingos/logs/pkinit.err
+	if [ $? -ne 0 ]; then return 1; fi
+	/opt/vikingos/python_env/bin/pip3 install minikerberos |& tee -a /opt/vikingos/logs/pkinit.err
+	if [ $? -ne 0 ]; then return 1; fi
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/getnthash.py "$@"' > /usr/local/bin/getnthash && chmod 555 /usr/local/bin/getnthash
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/gets4uticket.py "$@"' > /usr/local/bin/gets4uticket && chmod 555 /usr/local/bin/gets4uticket
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/gettgtpkinit.py "$@"' > /usr/local/bin/gettgtpkinit && chmod 555 /usr/local/bin/gettgtpkinit
+	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/ntlmrelayx/httpattack.py "$@"' > /usr/local/bin/httpattack && chmod 555 /usr/local/bin/httpattack
+	rm /opt/vikingos/logs/pkinit.err
+	remove_tool_from_continuation_file "pkinit"
+}
+
 install_bloodyad() {
 	echo "bloodyad" >> /etc/vikingos/vikingos.config
 	cd /opt/vikingos/windows
-	git clone https://github.com/CravateRouge/bloodyAD & tee -a /opt/vikingos/logs/bloodyad.err
-	if [ $? -ne 0 ]; then return 1; fi
 	/opt/vikingos/python_env/bin/pip3 install bloodyAD |& tee -a /opt/vikingos/logs/bloodyad.err
 	if [ $? -ne 0 ]; then return 1; fi
 	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/bloodyAD/bloodyAD.py "$@"'> /usr/local/bin/bloodyad && chmod 555 /usr/local/bin/bloodyad
@@ -1565,7 +1575,7 @@ install_set() {
 	cd /opt/vikingos/phishing
 	git clone https://github.com/trustedsec/social-engineer-toolkit |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
-	python_header=`curl -L https://www.python.org/ftp/python | grep 3.11 | tail -1 | cut -f 2 -d '"'`
+	python_header=`curl -L https://www.python.org/ftp/python | grep "3.11\\." | tail -1 | cut -f 2 -d '"'`
 	curl -L https://www.python.org/ftp/python/$python_header | grep tar.xz | head -1 | cut -f 2 -d '"' | xargs -I {} curl -L -o /tmp/python.tar.xz https://www.python.org/ftp/python/$python_header/{} |& tee -a /opt/vikingos/logs/social-engineer-toolkit.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd /tmp
@@ -2741,13 +2751,30 @@ install_hcxdumptool() {
 	git clone https://github.com/ZerBea/hcxdumptool |& tee -a /opt/vikingos/logs/hcxdumptool.err
 	if [ $? -ne 0 ]; then return 1; fi
 	cd hcxdumptool
-	apt-get install libssl-dev openssl libcurl4-openssl-dev libpcap-dev |& tee -a /opt/vikingos/logs/hcxdumptool.err
+	apt-get install -y libssl-dev openssl libcurl4-openssl-dev libpcap-dev |& tee -a /opt/vikingos/logs/hcxdumptool.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make -j $(nproc) |& tee -a /opt/vikingos/logs/hcxdumptool.err
 	if [ $? -ne 0 ]; then return 1; fi
 	make install
 	rm /opt/vikingos/logs/hcxdumptool.err
 	remove_tool_from_continuation_file "hcxdumptool"
+}
+
+install_rtw88() {
+	echo "rtw88" >> /etc/vikingos/vikingos.config
+	apt install -y linux-headers-generic build-essential git dkms |& tee -a /opt/vikingos/logs/rtw88.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd /opt/vikingos/wireless
+	git clone https://github.com/lwfinger/rtw88 |& tee -a /opt/vikingos/logs/rtw88.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cd rtw88
+	dkms install $PWD |& tee -a /opt/vikingos/logs/rtw88.err
+	if [ $? -ne 0 ]; then return 1; fi
+	make install_fw |& tee -a /opt/vikingos/logs/rtw88.err
+	if [ $? -ne 0 ]; then return 1; fi
+	cp rtw88.conf /etc/modprobe.d/
+	rm /opt/vikingos/logs/rtw88.err
+	remove_tool_from_continuation_file "rtw88"
 }
 
 
@@ -2833,6 +2860,7 @@ else
 		keytabextract "" on
 		donpapi "" on
 		pywhisker "" on
+		pkinit "" on
 		bloodyad "" on
 		coercer "" on
 		incognito "" on
@@ -2875,7 +2903,7 @@ else
 		poshc2 "" off
 		peass-ng "" on
 		okteta "" on
-		bless "" on
+		bless "" off
 		brave-browser "" on
 		chromium-browser "" on
 		incus "" on
@@ -2912,6 +2940,7 @@ else
 		kismet "" on
 		hcxtools "" on
 		hcxdumptool "" on
+		rtw88 "" on
 		nfs-server "" off)
 	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	echo $choices >> /tmp/vikingos.continue
@@ -2933,7 +2962,7 @@ if [ ! -f /etc/vikingos/vikingos.config ]; then
 	apt-get install -y libssl-dev
 	apt-get install -y libssh-dev 
 	apt-get install -y automake
-	apt-get install -y gdb
+	apt-get install -y gdb ddd
 	apt-get install -y nodejs 
 	apt-get install -y node
 	apt-get install -y npm
@@ -3003,6 +3032,8 @@ if [ ! -f /etc/vikingos/vikingos.config ]; then
 	apt-get install -y fzf
 	apt-get install -y bat
 	apt-get install -y ripgrep
+	apt-get install -y adb
+	apt-get install -y iptables-persistent
 	if [ -f "/etc/apt/preferences.d/nosnap.pref" ]; then
 		mv /etc/apt/preferences.d/nosnap.pref /etc/apt/preferences.d/nosnap.bak
 		apt-get install -y snapd
@@ -3061,7 +3092,9 @@ if [ ! -f /etc/vikingos/vikingos.config ]; then
 		apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 	fi
 
-	python3 -m venv /opt/vikingos/python_env
+	#python3 -m venv /opt/vikingos/python_env
+	
+
 	mkdir /etc/vikingos
 	mkdir /opt/vikingos
 	mkdir /opt/vikingos/logs
@@ -3098,6 +3131,19 @@ if [ ! -f /etc/vikingos/vikingos.config ]; then
 	mkdir /opt/vikingos/pivoting
 	mkdir /opt/vikingos/encryption_password_managers
 	mkdir /opt/vikingos/wireless
+
+	cd /tmp
+	wget -O python.tar.xz https://www.python.org/ftp/python/3.10.19/Python-3.10.19.tar.xz
+	mkdir pybuild
+	tar xf python.tar.xz -C pybuild --strip-components=1
+	mkdir python_environment
+	cd pybuild
+	./configure --prefix /opt/vikingos/python_env 
+	make
+	make install
+	cd ..
+	rm python.tar.xz
+	rm -rf pybuild
 
 	cd /opt/vikingos/coding
 	mkdir go
@@ -3347,6 +3393,9 @@ do
 		pywhisker)
 			install_pywhisker
 			;;
+		pkinit)
+			install_pkinit
+			;;
 		bloodyad)
 			install_bloodyad
 			;;
@@ -3587,6 +3636,9 @@ do
 		hcxdumptool)
 			install_hcxdumptool
 			;;
+		rtw88)
+			install_rtw88
+			;;
 		nfs-server)
 			install_nfsserver
 			;;
@@ -3603,6 +3655,7 @@ echo -ne "\tResources for the os are located at /usr/share/vikingos-resources\n\
 echo -ne "\tDev extensions for VS Code install script will need to be run as a normal user in the coding folder\n"
 echo -ne "\tFor cyberchef, ubuntu installs firefox and chromium via snapd which chroots those apps. Because of this, they cannot read the file. Use brave to open cyberchef instead or reinstall firefox/chromium without using snapd\n\n"
 echo -ne "\tIf you installed kismet, run the following command to add yourself to the kismet group:  usermod -aG kismet your-user-here\n"
+echo -ne "\tIf you installed the rtw88 drivers, please run this command for ubuntu:\n\t\tmokutil --import /var/lib/shim-signed/mok/MOK.der\n\tOr this for other systems:\n\t\tmokutil --import /var/lib/dkms/mok.pub\n"
 echo -ne "\tA reboot is required for rust to work properly. A shell script has been added to /etc/profile.d to add environment variables needed for rust. If needed, run the shell script found at /etc/profile.d/rust.sh.\n\n"
 if [ -z "$(ls -A /opt/vikingos/logs)" ]; then
 	echo "All Packages installed!"
