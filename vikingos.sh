@@ -1233,6 +1233,8 @@ install_pkinit() {
 	if [ $? -ne 0 ]; then return 1; fi
 	/opt/vikingos/python_env/bin/pip3 install minikerberos |& tee -a /opt/vikingos/logs/pkinit.err
 	if [ $? -ne 0 ]; then return 1; fi
+	/opt/vikingos/python_env/bin/pip3 install -I git+https://github.com/wbond/oscrypto.git |& tee -a /opt/vikingos/logs/pkinit.err
+	if [ $? -ne 0 ]; then return 1; fi
 	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/getnthash.py "$@"' > /usr/local/bin/getnthash && chmod 555 /usr/local/bin/getnthash
 	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/gets4uticket.py "$@"' > /usr/local/bin/gets4uticket && chmod 555 /usr/local/bin/gets4uticket
 	echo '/opt/vikingos/python_env/bin/python3 /opt/vikingos/windows/PKINITtools/gettgtpkinit.py "$@"' > /usr/local/bin/gettgtpkinit && chmod 555 /usr/local/bin/gettgtpkinit
